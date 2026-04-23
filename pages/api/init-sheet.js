@@ -1,23 +1,28 @@
 import { withAuth } from '../../lib/auth'
 import { getSheets, SPREADSHEET_ID } from '../../lib/sheets'
+import { MONTHS_ID, MONTH_ABBR } from '../../lib/constants'
+import { isValidSheetName } from '../../lib/validation'
 
-const MONTHS_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-// Generate rekap dates: 20th of startMonth to 19th of next month
+// Generate tanggal rekap: 20 bulan awal sampai 19 bulan berikutnya
+// Pakai tahun dinamis (bukan hardcoded) biar tetep jalan di tahun kabisat ke depan
 function generateRekapDates(monthName) {
   const idx = MONTHS_ID.indexOf(monthName)
   if (idx === -1) return []
+
+  const year = new Date().getFullYear()
   const nextIdx = (idx + 1) % 12
+  // Kalau start bulan adalah Desember, bulan berikutnya di tahun depan
+  const nextYear = idx === 11 ? year + 1 : year
+
   const dates = []
-  // Days 20-end of start month
-  const daysInStartMonth = new Date(2026, idx + 1, 0).getDate()
+  // Tanggal 20 sampai akhir bulan awal
+  const daysInStartMonth = new Date(year, idx + 1, 0).getDate()
   for (let d = 20; d <= daysInStartMonth; d++) {
     dates.push(`${d}-${MONTH_ABBR[idx]}`)
   }
-  // Days 1-19 of next month
+  // Tanggal 1 sampai 19 bulan berikutnya
+  // Note: nextYear dipakai implisit via new Date(nextYear, nextIdx+1, 0) seandainya
+  // mau cek hari di bulan next, tapi karena kita cuma iterasi 1-19, tidak perlu
   for (let d = 1; d <= 19; d++) {
     dates.push(`${d}-${MONTH_ABBR[nextIdx]}`)
   }
@@ -25,13 +30,22 @@ function generateRekapDates(monthName) {
 }
 
 async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
 
-  const { newMonth, sourceMonth } = req.body
+  const { newMonth, sourceMonth } = req.body || {}
+
+  if (!isValidSheetName(newMonth)) {
+    return res.status(400).json({ error: 'Nama bulan baru tidak valid' })
+  }
+  if (!isValidSheetName(sourceMonth)) {
+    return res.status(400).json({ error: 'Nama bulan source tidak valid' })
+  }
+
   const sheets = getSheets()
 
   try {
-    // Get all existing sheets
     const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID })
     const allSheets = meta.data.sheets
     const existingNames = allSheets.map(s => s.properties.title)
@@ -40,7 +54,6 @@ async function handler(req, res) {
       return res.json({ success: true, message: 'Sheet sudah ada' })
     }
 
-    // Find source sheet to duplicate
     const sourceSheet = allSheets.find(s => s.properties.title === sourceMonth)
     if (!sourceSheet) {
       return res.status(400).json({ error: `Sheet "${sourceMonth}" tidak ditemukan` })
@@ -48,8 +61,8 @@ async function handler(req, res) {
 
     const sourceSheetId = sourceSheet.properties.sheetId
 
-    // Duplicate the source sheet
-    const dupRes = await sheets.spreadsheets.batchUpdate({
+    // Duplicate sheet source
+    await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
       requestBody: {
         requests: [{
@@ -62,19 +75,19 @@ async function handler(req, res) {
       }
     })
 
-    // Clear variable cost data (B2:E60) - keep row 1 header
+    // Clear data pengeluaran variable (B2:E60) — header di row 1 dipertahankan
     await sheets.spreadsheets.values.clear({
       spreadsheetId: SPREADSHEET_ID,
       range: `${newMonth}!B2:E60`,
     })
 
-    // Clear income data rows (G3:I10) - keep JUMLAH formula row
+    // Clear data pemasukan (G3:I10) — baris formula JUMLAH dipertahankan
     await sheets.spreadsheets.values.clear({
       spreadsheetId: SPREADSHEET_ID,
       range: `${newMonth}!G3:I10`,
     })
 
-    // Update rekap dates in column K (K2:K32)
+    // Update tanggal rekap di kolom K
     const rekapDates = generateRekapDates(newMonth)
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -85,7 +98,7 @@ async function handler(req, res) {
       },
     })
 
-    // Clear rekap jumlah column (L2:L32) - formulas will repopulate
+    // Clear kolom rekap jumlah (L2:L32) — formula akan repopulate
     await sheets.spreadsheets.values.clear({
       spreadsheetId: SPREADSHEET_ID,
       range: `${newMonth}!L2:L32`,
@@ -93,8 +106,8 @@ async function handler(req, res) {
 
     res.json({ success: true, message: `Sheet "${newMonth}" berhasil dibuat` })
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: err.message })
+    console.error('[api/init-sheet]', err.message)
+    res.status(500).json({ error: 'Gagal membuat sheet baru' })
   }
 }
 

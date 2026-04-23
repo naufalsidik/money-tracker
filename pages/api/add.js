@@ -1,8 +1,7 @@
 import { withAuth } from '../../lib/auth'
 import { getSheets, getCurrentSheetName, SPREADSHEET_ID } from '../../lib/sheets'
-
-const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+import { MONTH_ABBR } from '../../lib/constants'
+import { isValidSheetName, validateVariable, validateIncome, validateSaving } from '../../lib/validation'
 
 function formatDateForSheets(dateStr) {
   if (!dateStr) return ''
@@ -28,41 +27,69 @@ async function findNextEmptyRow(sheets, sheetName, column, startRow, endRow) {
       lastFilledIndex = i
     }
   }
-  return startRow + lastFilledIndex + 1
+  const nextRow = startRow + lastFilledIndex + 1
+  // Bounds check — cegah overflow ke row yang tidak di-format
+  if (nextRow > endRow) {
+    const err = new Error(`Section penuh. Maksimal ${endRow - startRow + 1} entri, silakan rapikan data lama di Google Sheet.`)
+    err.statusCode = 400
+    throw err
+  }
+  return nextRow
 }
 
 async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
 
-  const { type, data, sheet } = req.body
+  const { type, data, sheet } = req.body || {}
+
+  // Validasi type
+  if (!['variable', 'income', 'saving'].includes(type)) {
+    return res.status(400).json({ error: 'Tipe transaksi tidak valid' })
+  }
+
+  // Validasi sheet name
   const sheetName = sheet || getCurrentSheetName()
+  if (!isValidSheetName(sheetName)) {
+    return res.status(400).json({ error: 'Nama sheet tidak valid' })
+  }
+
+  // Validasi data per tipe
+  let validationErrors = []
+  if (type === 'variable') validationErrors = validateVariable(data)
+  else if (type === 'income') validationErrors = validateIncome(data)
+  else if (type === 'saving') validationErrors = validateSaving(data)
+
+  if (validationErrors.length > 0) {
+    return res.status(400).json({ error: validationErrors.join(', ') })
+  }
+
   const sheets = getSheets()
 
   try {
     if (type === 'variable') {
       const { date, description, category, amount } = data
       const formattedDate = formatDateForSheets(date)
-      // Find next empty row in variable cost section (B2:B60)
       const nextRow = await findNextEmptyRow(sheets, sheetName, 'B', 2, 60)
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `${sheetName}!B${nextRow}:E${nextRow}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [[formattedDate, description, category, Number(amount)]],
+          values: [[formattedDate, description.trim(), category, Number(amount)]],
         },
       })
     } else if (type === 'income') {
       const { date, description, amount } = data
       const formattedDate = formatDateForSheets(date)
-      // Find next empty row in income section (G3:G10)
-      const nextRow = await findNextEmptyRow(sheets, sheetName, 'G', 3, 6)
+      const nextRow = await findNextEmptyRow(sheets, sheetName, 'G', 3, 10)
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `${sheetName}!G${nextRow}:I${nextRow}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [[formattedDate, description, Number(amount)]],
+          values: [[formattedDate, description.trim(), Number(amount)]],
         },
       })
     } else if (type === 'saving') {
@@ -73,15 +100,16 @@ async function handler(req, res) {
         range: `${sheetName}!H${nextRow}:I${nextRow}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [[component, Number(amount)]],
+          values: [[component.trim(), Number(amount)]],
         },
       })
     }
 
     res.json({ success: true })
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: err.message })
+    console.error('[api/add]', err.message)
+    const statusCode = err.statusCode || 500
+    res.status(statusCode).json({ error: err.message || 'Gagal menyimpan data' })
   }
 }
 

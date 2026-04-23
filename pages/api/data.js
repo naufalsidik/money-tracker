@@ -1,8 +1,20 @@
 import { withAuth } from '../../lib/auth'
 import { getSheets, getCurrentSheetName, getPeriodLabel, parseAmount, SPREADSHEET_ID } from '../../lib/sheets'
+import { isValidSheetName } from '../../lib/validation'
 
 async function handler(req, res) {
-  const sheetName = req.query.sheet || getCurrentSheetName()
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const requestedSheet = req.query.sheet
+  const sheetName = requestedSheet || getCurrentSheetName()
+
+  // Validasi nama sheet — harus dari whitelist nama bulan Indonesia
+  if (!isValidSheetName(sheetName)) {
+    return res.status(400).json({ error: 'Nama sheet tidak valid' })
+  }
+
   const sheets = getSheets()
 
   try {
@@ -19,11 +31,10 @@ async function handler(req, res) {
       range: `${sheetName}!K2:P`,
     })
 
-    // Track original row number (B2 = row 2, so offset = 2)
     const allVarRows = varRes.data.values || []
     const transactions = []
     allVarRows.forEach((r, i) => {
-      const rowNum = i + 2 // B2 is row 2
+      const rowNum = i + 2 // B2 = row 2
       const dateVal = String(r[0] || '')
       const isDate = /\d/.test(dateVal) && (dateVal.includes('-') || dateVal.includes('/'))
       if (r[0] && r[3] && isDate) {
@@ -79,8 +90,9 @@ async function handler(req, res) {
       summary: { totalIncome, totalVariable, categoryBreakdown: categoryMap }
     })
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: err.message })
+    console.error('[api/data]', err.message)
+    // Jangan leak detail error ke client
+    res.status(500).json({ error: 'Gagal mengambil data sheet' })
   }
 }
 
