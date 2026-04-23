@@ -47,7 +47,7 @@ export default function Login() {
         alignItems: 'center', justifyContent: 'center',
         fontFamily: 'Sora, sans-serif', padding: 20
       }}>
-        {/* Subtle background grid */}
+        {/* Grid background halus */}
         <div style={{
           position: 'fixed', inset: 0, opacity: 0.03,
           backgroundImage: 'linear-gradient(#e6edf3 1px, transparent 1px), linear-gradient(90deg, #e6edf3 1px, transparent 1px)',
@@ -59,24 +59,24 @@ export default function Login() {
           padding: '40px 36px', width: '100%', maxWidth: 380,
           boxShadow: '0 24px 64px rgba(0,0,0,0.4)', position: 'relative'
         }}>
-          {/* Logo */}
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div style={{
               width: 56, height: 56, background: '#f0a50015',
               border: '1px solid #f0a50040', borderRadius: 16,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 28, margin: '0 auto 16px'
-            }}>💰</div>
+            }} aria-hidden="true">💰</div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#e6edf3', marginBottom: 4 }}>Money Tracker</h1>
             <p style={{ fontSize: 13, color: '#8b949e' }}>Masuk untuk melanjutkan</p>
           </div>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
+              <label htmlFor="username" style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
                 Username
               </label>
               <input
+                id="username"
                 type="text"
                 autoComplete="username"
                 autoFocus
@@ -84,6 +84,7 @@ export default function Login() {
                 onChange={e => setUsername(e.target.value)}
                 placeholder="username"
                 required
+                maxLength={100}
                 style={{
                   width: '100%', padding: '11px 14px', borderRadius: 8,
                   background: '#0d1117', border: '1px solid #30363d',
@@ -98,10 +99,11 @@ export default function Login() {
             </div>
 
             <div>
-              <label style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
+              <label htmlFor="pin" style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
                 PIN
               </label>
               <input
+                id="pin"
                 type="password"
                 autoComplete="current-password"
                 inputMode="numeric"
@@ -109,6 +111,7 @@ export default function Login() {
                 onChange={e => setPin(e.target.value)}
                 placeholder="••••••"
                 required
+                maxLength={100}
                 style={{
                   width: '100%', padding: '11px 14px', borderRadius: 8,
                   background: '#0d1117', border: '1px solid #30363d',
@@ -123,7 +126,7 @@ export default function Login() {
             </div>
 
             {error && (
-              <div style={{
+              <div role="alert" style={{
                 padding: '10px 14px', borderRadius: 8, fontSize: 13,
                 background: '#f8514920', border: '1px solid #f8514940', color: '#f85149'
               }}>
@@ -169,7 +172,7 @@ export default function Login() {
   )
 }
 
-// Redirect to home if already logged in
+// Redirect ke home kalau sudah login
 export async function getServerSideProps({ req, res }) {
   const session = await getSession(req, res)
   if (session?.user?.authenticated) {

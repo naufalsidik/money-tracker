@@ -4,23 +4,8 @@ import {
   LineChart, Line, CartesianGrid, Legend
 } from 'recharts'
 import Head from 'next/head'
-
-const MONTHS_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-
-const VAR_CATEGORIES = [
-  'Belanja', 'Donasi', 'Hiburan', 'Hutang', 'Jajan', 'Kebutuhan',
-  'Kesehatan', 'Lain-lain', 'Laundry', 'Makan', 'Parkir',
-  'Pendidikan', 'Perawatan Diri', 'Transportasi'
-]
-
-const CATEGORY_COLORS = {
-  Hutang: '#f85149', Makan: '#3fb950', Jajan: '#f0a500',
-  Transportasi: '#58a6ff', Belanja: '#bc8cff', Donasi: '#39d353',
-  Parkir: '#ffa657', Laundry: '#79c0ff', Pendidikan: '#d2a8ff',
-  Kebutuhan: '#56d364', Kesehatan: '#ff7b72', Hiburan: '#e3b341',
-  'Perawatan Diri': '#f778ba', 'Lain-lain': '#8b949e',
-}
+import ReactMarkdown from 'react-markdown'
+import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../lib/constants'
 
 function formatRp(num) {
   if (!num) return 'Rp0'
@@ -102,7 +87,10 @@ export default function Home() {
         body: JSON.stringify({ action: 'update', type, rowNum: editingRow.rowNum, sheetName: selectedSheet, data: editForm }),
       })
       if (res.ok) { setEditingRow(null); fetchData(selectedSheet) }
-      else alert('Gagal menyimpan.')
+      else {
+        const err = await res.json()
+        alert('Gagal menyimpan: ' + (err.error || 'coba lagi'))
+      }
     } catch { alert('Error.') }
     setEditSaving(false)
   }
@@ -112,7 +100,6 @@ export default function Home() {
     window.location.href = '/login'
   }
 
-  // Fetch available sheets
   const fetchSheets = useCallback(async () => {
     try {
       const res = await fetch('/api/sheets-list')
@@ -122,7 +109,6 @@ export default function Home() {
     } catch { return [] }
   }, [])
 
-  // Fetch data for selected sheet
   const fetchData = useCallback(async (sheet) => {
     setLoading(true)
     try {
@@ -138,7 +124,6 @@ export default function Home() {
   useEffect(() => {
     const init = async () => {
       const sheets = await fetchSheets()
-      // Default to current period month if it exists, otherwise latest
       const defaultSheet = sheets.includes(currentMonth)
         ? currentMonth
         : sheets[sheets.length - 1]
@@ -188,7 +173,7 @@ export default function Home() {
         }),
       })
       const json = await res.json()
-      setAnalysis(json.analysis || json.error)
+      setAnalysis(json.analysis || json.error || 'Tidak ada hasil.')
     } catch {
       setAnalysis('Gagal mengambil analisis.')
     }
@@ -250,16 +235,14 @@ export default function Home() {
         <header style={{ borderBottom: '1px solid #21262d' }}>
           <div style={{ maxWidth: 960, margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 24 }}>💰</span>
+              <span style={{ fontSize: 24 }} aria-hidden="true">💰</span>
               <div>
                 <h1 style={{ fontWeight: 700, fontSize: 17, lineHeight: 1.2, color: '#e6edf3' }}>Money Tracker</h1>
                 {data && <p style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>{data.period}</p>}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Logout */}
               <button onClick={handleLogout} style={{ fontSize: 12, padding: '7px 14px', borderRadius: 8, border: '1px solid #21262d', background: 'transparent', color: '#8b949e', cursor: 'pointer' }}>Keluar</button>
-              {/* Create next month button */}
               {selectedSheet && !nextMonthExists && nextMonth && (
                 <button
                   onClick={handleInitSheet}
@@ -274,6 +257,7 @@ export default function Home() {
                 </button>
               )}
               <select
+                aria-label="Pilih bulan"
                 style={{
                   background: '#161b22', border: '1px solid #21262d', borderRadius: 8,
                   color: '#e6edf3', padding: '7px 12px', fontSize: 13, outline: 'none'
@@ -290,8 +274,7 @@ export default function Home() {
               {initMsg}
             </div>
           )}
-          {/* Tabs */}
-          <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px', display: 'flex', gap: 24 }}>
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px', display: 'flex', gap: 24 }} role="tablist">
             {[
               { id: 'dashboard', label: '📊 Dashboard' },
               { id: 'add', label: '➕ Tambah' },
@@ -300,6 +283,8 @@ export default function Home() {
             ].map(t => (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
                 style={{
                   padding: '12px 0', fontSize: 13, fontWeight: 500, cursor: 'pointer',
@@ -334,7 +319,7 @@ export default function Home() {
               {/* DASHBOARD */}
               {tab === 'dashboard' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
                     {[
                       { label: 'Total Pemasukan', value: formatRp(totalIncome), color: '#3fb950' },
                       { label: 'Total Pengeluaran', value: formatRp(totalVar), color: '#f85149' },
@@ -448,7 +433,7 @@ export default function Home() {
                       <div style={{ marginBottom: 16 }}>
                         <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deskripsi</p>
                         <input type="text" placeholder="Warung Nasi, Gojek, Gaji..." value={formData.description}
-                          onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                          onChange={e => setFormData({ ...formData, description: e.target.value })} maxLength={200} />
                       </div>
                     )}
 
@@ -466,14 +451,14 @@ export default function Home() {
                       <div style={{ marginBottom: 16 }}>
                         <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Komponen</p>
                         <input type="text" placeholder="Dana Darurat, Saham, Reksa Dana..." value={formData.component}
-                          onChange={e => setFormData({ ...formData, component: e.target.value })} />
+                          onChange={e => setFormData({ ...formData, component: e.target.value })} maxLength={200} />
                       </div>
                     )}
 
                     <div style={{ marginBottom: 20 }}>
                       <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jumlah (Rp)</p>
                       <input type="number" placeholder="50000" value={formData.amount}
-                        onChange={e => setFormData({ ...formData, amount: e.target.value })} />
+                        onChange={e => setFormData({ ...formData, amount: e.target.value })} min="1" max="1000000000" />
                     </div>
 
                     <button className="btn-primary" onClick={handleSubmit} disabled={submitting}
@@ -493,7 +478,7 @@ export default function Home() {
               {/* TRANSACTIONS */}
               {tab === 'transactions' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div className="card" style={{ overflow: 'hidden' }}>
+                  <div className="card" style={{ overflow: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #21262d' }}>
@@ -512,7 +497,7 @@ export default function Home() {
                               </td>
                               <td style={{ padding: '8px 12px' }}>
                                 <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                                  style={{ padding: '6px 10px', fontSize: 12 }} />
+                                  style={{ padding: '6px 10px', fontSize: 12 }} maxLength={200} />
                               </td>
                               <td style={{ padding: '8px 12px' }}>
                                 <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}
@@ -566,7 +551,7 @@ export default function Home() {
                   </div>
 
                   {data.income.length > 0 && (
-                    <div className="card" style={{ overflow: 'hidden' }}>
+                    <div className="card" style={{ overflow: 'auto' }}>
                       <div style={{ padding: '12px 16px', borderBottom: '1px solid #21262d' }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#3fb950', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pemasukan</span>
                       </div>
@@ -581,7 +566,7 @@ export default function Home() {
                                 </td>
                                 <td style={{ padding: '8px 12px' }}>
                                   <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                                    style={{ padding: '6px 10px', fontSize: 12 }} />
+                                    style={{ padding: '6px 10px', fontSize: 12 }} maxLength={200} />
                                 </td>
                                 <td style={{ padding: '8px 12px' }}>
                                   <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
@@ -630,7 +615,7 @@ export default function Home() {
               {tab === 'analysis' && (
                 <div style={{ maxWidth: 700, margin: '0 auto' }}>
                   <div className="card" style={{ padding: 24 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
                       <div>
                         <h2 style={{ fontWeight: 600, fontSize: 17, color: '#e6edf3' }}>Analisis AI</h2>
                         <p style={{ fontSize: 11, color: '#8b949e', marginTop: 4 }}>Periode: {data.period}</p>
@@ -649,14 +634,9 @@ export default function Home() {
                     )}
 
                     {analysis && (
-                      <div
-                        style={{ fontSize: 14, lineHeight: 1.8, color: '#c9d1d9', whiteSpace: 'pre-wrap' }}
-                        dangerouslySetInnerHTML={{
-                          __html: analysis
-                            .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#f0a500">$1</strong>')
-                            .replace(/\n/g, '<br/>')
-                        }}
-                      />
+                      <div className="analysis-markdown">
+                        <ReactMarkdown>{analysis}</ReactMarkdown>
+                      </div>
                     )}
                   </div>
                 </div>
