@@ -6,6 +6,8 @@ import {
 import Head from 'next/head'
 import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../lib/constants'
 
+const FIXED_ITEMS = ['Kosan', 'Internet', 'iCloud', 'Claude', 'Apple Music']
+
 function formatRp(num) {
   if (!num) return 'Rp0'
   return 'Rp' + Number(num).toLocaleString('id-ID')
@@ -52,8 +54,18 @@ export default function Home() {
   const [availableSheets, setAvailableSheets] = useState([])
   const [selectedSheet, setSelectedSheet] = useState('')
   const [currentMonth] = useState(getCurrentMonthName())
+
+  // Form state: type = variable/income/saving, subType = variable/fixed (untuk pengeluaran)
   const [formType, setFormType] = useState('variable')
-  const [formData, setFormData] = useState({ date: todayFormatted(), description: '', category: '', amount: '', component: '' })
+  const [expenseKind, setExpenseKind] = useState('variable') // 'variable' atau 'fixed'
+  const [formData, setFormData] = useState({
+    date: todayFormatted(),
+    description: '',
+    category: '',
+    amount: '',
+    component: '',
+    item: '',
+  })
   const [submitting, setSubmitting] = useState(false)
   const [submitMsg, setSubmitMsg] = useState('')
   const [initLoading, setInitLoading] = useState(false)
@@ -62,8 +74,20 @@ export default function Home() {
   const [editForm, setEditForm] = useState({})
   const [editSaving, setEditSaving] = useState(false)
 
+  function resetForm() {
+    setFormData({
+      date: todayFormatted(),
+      description: '',
+      category: '',
+      amount: '',
+      component: '',
+      item: '',
+    })
+  }
+
   async function handleDelete(row, type) {
-    if (!confirm(`Hapus transaksi "${row.description}" - ${formatRp(row.amount)}?`)) return
+    const label = type === 'saving' ? row.component : row.description
+    if (!confirm(`Hapus "${label}" - ${formatRp(row.amount)}?`)) return
     try {
       const res = await fetch('/api/edit', {
         method: 'POST',
@@ -71,7 +95,10 @@ export default function Home() {
         body: JSON.stringify({ action: 'delete', type, rowNum: row.rowNum, sheetName: selectedSheet }),
       })
       if (res.ok) fetchData(selectedSheet)
-      else alert('Gagal menghapus.')
+      else {
+        const err = await res.json()
+        alert('Gagal menghapus: ' + (err.error || 'coba lagi'))
+      }
     } catch { alert('Error.') }
   }
 
@@ -130,29 +157,91 @@ export default function Home() {
     init()
   }, [fetchSheets, fetchData, currentMonth])
 
-  async function handleSubmit() {
-    if (!formData.amount) return
+  // Submit handler — handle semua tipe termasuk confirm flow untuk fixed
+  async function submitData(confirmReplace = false) {
     setSubmitting(true)
     setSubmitMsg('')
+
+    // Tentukan tipe aktual untuk API
+    let apiType = formType
+    if (formType === 'variable') {
+      apiType = expenseKind === 'fixed' ? 'fixed' : 'variable'
+    }
+
+    // Siapkan payload sesuai tipe
+    let payload = {}
+    if (apiType === 'variable') {
+      payload = { date: formData.date, description: formData.description, category: formData.category, amount: formData.amount }
+    } else if (apiType === 'fixed') {
+      payload = { item: formData.item, amount: formData.amount }
+    } else if (apiType === 'income') {
+      payload = { date: formData.date, description: formData.description, amount: formData.amount }
+    } else if (apiType === 'saving') {
+      payload = { component: formData.component, amount: formData.amount }
+    }
+
     try {
       const res = await fetch('/api/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: formType, data: formData, sheet: selectedSheet }),
+        body: JSON.stringify({
+          type: apiType,
+          data: payload,
+          sheet: selectedSheet,
+          confirm: confirmReplace,
+        }),
       })
+
+      if (res.status === 409) {
+        // Fixed cost: item sudah terisi, minta konfirmasi
+        const json = await res.json()
+        const newAmount = Number(formData.amount)
+        const msg = `Item ${formData.item} sudah terisi Rp${json.existing.toLocaleString('id-ID')}. Replace jadi Rp${newAmount.toLocaleString('id-ID')}?`
+        if (confirm(msg)) {
+          setSubmitting(false)
+          return submitData(true) // recursive call dengan confirm=true
+        } else {
+          setSubmitMsg('Dibatalkan.')
+          setSubmitting(false)
+          setTimeout(() => setSubmitMsg(''), 3000)
+          return
+        }
+      }
+
       if (res.ok) {
         setSubmitMsg('Berhasil ditambahkan!')
-        setFormData({ date: todayFormatted(), description: '', category: '', amount: '', component: '' })
-        fetchData(selectedSheet)
+        resetForm()
+        await fetchData(selectedSheet)
+
+        // Untuk fixed cost, balikin ke tab Transaksi biar user lihat hasilnya
+        if (apiType === 'fixed') {
+          setTimeout(() => {
+            setTab('transactions')
+            setSubmitMsg('')
+          }, 800)
+        } else {
+          setTimeout(() => setSubmitMsg(''), 4000)
+        }
       } else {
         const err = await res.json()
         setSubmitMsg('Gagal: ' + (err.error || 'Coba lagi'))
+        setTimeout(() => setSubmitMsg(''), 4000)
       }
     } catch {
       setSubmitMsg('Error. Coba lagi.')
+      setTimeout(() => setSubmitMsg(''), 4000)
     }
     setSubmitting(false)
-    setTimeout(() => setSubmitMsg(''), 4000)
+  }
+
+  function handleSubmit() {
+    // Guard minimal di client
+    if (!formData.amount) return
+    if (formType === 'variable' && expenseKind === 'fixed' && !formData.item) {
+      setSubmitMsg('Pilih item dulu.')
+      return
+    }
+    submitData(false)
   }
 
   async function handleInitSheet() {
@@ -194,7 +283,9 @@ export default function Home() {
   })) || []
   const totalIncome = data?.summary?.totalIncome || 0
   const totalVar = data?.summary?.totalVariable || 0
-  const selisih = totalIncome - totalVar
+  const totalFixed = data?.summary?.totalFixed || 0
+  const totalExpense = totalVar + totalFixed
+  const selisih = totalIncome - totalExpense
 
   return (
     <>
@@ -296,20 +387,21 @@ export default function Home() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
                     {[
                       { label: 'Total Pemasukan', value: formatRp(totalIncome), color: '#3fb950' },
-                      { label: 'Total Pengeluaran', value: formatRp(totalVar), color: '#f85149' },
+                      { label: 'Total Pengeluaran', value: formatRp(totalExpense), color: '#f85149', sub: `Var ${formatRp(totalVar)} · Fix ${formatRp(totalFixed)}` },
                       { label: 'Sisa', value: formatRp(selisih), color: selisih >= 0 ? '#3fb950' : '#f85149' },
                       { label: 'Transaksi', value: data.transactions.length, color: '#e6edf3' },
                     ].map((card, i) => (
                       <div key={i} className="card" style={{ padding: 18 }}>
                         <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.label}</p>
                         <p style={{ fontSize: 20, fontWeight: 600, color: card.color }}>{card.value}</p>
+                        {card.sub && <p style={{ fontSize: 10, color: '#8b949e', marginTop: 4, fontFamily: 'JetBrains Mono, monospace' }}>{card.sub}</p>}
                       </div>
                     ))}
                   </div>
 
                   {categoryData.length > 0 && (
                     <div className="card" style={{ padding: 20 }}>
-                      <p style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Breakdown Pengeluaran</p>
+                      <p style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Breakdown Pengeluaran (Variable)</p>
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart data={categoryData} layout="vertical" margin={{ left: 16, right: 24, top: 4, bottom: 4 }}>
                           <XAxis type="number" hide />
@@ -321,6 +413,21 @@ export default function Home() {
                           />
                         </BarChart>
                       </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {data.fixedCost && data.fixedCost.some(f => f.amount > 0) && (
+                    <div className="card" style={{ padding: 20 }}>
+                      <p style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Fixed Cost</p>
+                      {data.fixedCost.map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < data.fixedCost.length - 1 ? '1px solid #21262d' : 'none' }}>
+                          <span style={{ fontSize: 13, color: '#e6edf3' }}>{f.item}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span style={{ fontSize: 11, color: '#8b949e', fontFamily: 'JetBrains Mono, monospace' }}>{f.percentage}</span>
+                            <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: f.amount > 0 ? '#f85149' : '#484f58', minWidth: 100, textAlign: 'right' }}>{formatRp(f.amount)}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -370,6 +477,7 @@ export default function Home() {
                   <div className="card" style={{ padding: 24 }}>
                     <h2 style={{ fontWeight: 600, fontSize: 17, marginBottom: 20, color: '#e6edf3' }}>Tambah Data</h2>
 
+                    {/* TIPE */}
                     <div style={{ marginBottom: 20 }}>
                       <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tipe</p>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -380,7 +488,11 @@ export default function Home() {
                         ].map(t => (
                           <button
                             key={t.id}
-                            onClick={() => { setFormType(t.id); setFormData({ date: todayFormatted(), description: '', category: '', amount: '', component: '' }) }}
+                            onClick={() => {
+                              setFormType(t.id)
+                              setExpenseKind('variable')
+                              resetForm()
+                            }}
                             style={{
                               padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 500,
                               cursor: 'pointer', border: 'none', fontFamily: 'Sora, sans-serif',
@@ -395,7 +507,35 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {formType !== 'saving' && (
+                    {/* Sub-pilihan hanya untuk Pengeluaran */}
+                    {formType === 'variable' && (
+                      <div style={{ marginBottom: 20 }}>
+                        <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jenis</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                          {[
+                            { id: 'variable', label: 'Variable' },
+                            { id: 'fixed', label: 'Fixed' },
+                          ].map(k => (
+                            <button
+                              key={k.id}
+                              onClick={() => { setExpenseKind(k.id); resetForm() }}
+                              style={{
+                                padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                                cursor: 'pointer', border: 'none', fontFamily: 'Sora, sans-serif',
+                                background: expenseKind === k.id ? '#58a6ff' : '#21262d',
+                                color: expenseKind === k.id ? '#0d1117' : '#8b949e',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              {k.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tanggal — hanya untuk Variable dan Income */}
+                    {((formType === 'variable' && expenseKind === 'variable') || formType === 'income') && (
                       <div style={{ marginBottom: 16 }}>
                         <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tanggal (DD/MM/YYYY)</p>
                         <input type="text" placeholder="21/04/2026" value={formData.date}
@@ -403,7 +543,8 @@ export default function Home() {
                       </div>
                     )}
 
-                    {formType !== 'saving' && (
+                    {/* Deskripsi — untuk Variable dan Income */}
+                    {((formType === 'variable' && expenseKind === 'variable') || formType === 'income') && (
                       <div style={{ marginBottom: 16 }}>
                         <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deskripsi</p>
                         <input type="text" placeholder="Warung Nasi, Gojek, Gaji..." value={formData.description}
@@ -411,7 +552,8 @@ export default function Home() {
                       </div>
                     )}
 
-                    {formType === 'variable' && (
+                    {/* Kategori — untuk Pengeluaran Variable */}
+                    {formType === 'variable' && expenseKind === 'variable' && (
                       <div style={{ marginBottom: 16 }}>
                         <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kategori</p>
                         <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
@@ -421,6 +563,18 @@ export default function Home() {
                       </div>
                     )}
 
+                    {/* Item — untuk Pengeluaran Fixed */}
+                    {formType === 'variable' && expenseKind === 'fixed' && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item</p>
+                        <select value={formData.item} onChange={e => setFormData({ ...formData, item: e.target.value })}>
+                          <option value="">Pilih item...</option>
+                          {FIXED_ITEMS.map(it => <option key={it} value={it}>{it}</option>)}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Komponen — untuk Saving */}
                     {formType === 'saving' && (
                       <div style={{ marginBottom: 16 }}>
                         <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Komponen</p>
@@ -429,10 +583,11 @@ export default function Home() {
                       </div>
                     )}
 
+                    {/* Jumlah — untuk semua */}
                     <div style={{ marginBottom: 20 }}>
                       <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jumlah (Rp)</p>
                       <input type="number" placeholder="50000" value={formData.amount}
-                        onChange={e => setFormData({ ...formData, amount: e.target.value })} min="1" max="1000000000" />
+                        onChange={e => setFormData({ ...formData, amount: e.target.value })} min="0" max="1000000000" />
                     </div>
 
                     <button className="btn-primary" onClick={handleSubmit} disabled={submitting}
@@ -452,7 +607,11 @@ export default function Home() {
               {/* TRANSACTIONS */}
               {tab === 'transactions' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Section: Pengeluaran Variable */}
                   <div className="card" style={{ overflow: 'auto' }}>
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid #21262d' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#f85149', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pengeluaran Variable</span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #21262d' }}>
@@ -463,7 +622,7 @@ export default function Home() {
                       </thead>
                       <tbody>
                         {[...data.transactions].reverse().map((t, i) => (
-                          editingRow !== null && editingRow.rowNum === t.rowNum && editingRow.type !== 'income' ? (
+                          editingRow !== null && editingRow.rowNum === t.rowNum && editingRow.type === 'variable' ? (
                             <tr key={i} style={{ background: '#161b22', borderBottom: '1px solid #21262d' }}>
                               <td style={{ padding: '8px 12px' }}>
                                 <input type="text" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })}
@@ -518,12 +677,69 @@ export default function Home() {
                           )
                         ))}
                         {data.transactions.length === 0 && (
-                          <tr><td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: '#8b949e' }}>Belum ada transaksi</td></tr>
+                          <tr><td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: '#8b949e' }}>Belum ada transaksi variable</td></tr>
                         )}
                       </tbody>
                     </table>
                   </div>
 
+                  {/* Section: Fixed Cost — antara Variable dan Income */}
+                  {data.fixedCost && data.fixedCost.length > 0 && (
+                    <div className="card" style={{ overflow: 'auto' }}>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid #21262d' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#bc8cff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fixed Cost</span>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #21262d' }}>
+                            {['Item', 'Jumlah', '%', ''].map((h, i) => (
+                              <th key={i} style={{ padding: '12px 16px', textAlign: h === 'Jumlah' || h === '%' ? 'right' : 'left', fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.fixedCost.map((f, i) => (
+                            editingRow !== null && editingRow.rowNum === f.rowNum && editingRow.type === 'fixed' ? (
+                              <tr key={i} style={{ background: '#161b22', borderBottom: '1px solid #21262d' }}>
+                                <td style={{ padding: '11px 16px', color: '#e6edf3' }}>{f.item}</td>
+                                <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                                  <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
+                                    style={{ padding: '6px 10px', fontSize: 12, textAlign: 'right', width: 120 }} min="0" />
+                                </td>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#8b949e' }}>{f.percentage}</td>
+                                <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                                  <button onClick={() => handleSaveEdit('fixed')} disabled={editSaving}
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: 'none', background: '#3fb950', color: '#0d1117', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
+                                    {editSaving ? '...' : 'Simpan'}
+                                  </button>
+                                  <button onClick={() => setEditingRow(null)}
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: '1px solid #30363d', background: 'transparent', color: '#8b949e', cursor: 'pointer' }}>
+                                    Batal
+                                  </button>
+                                </td>
+                              </tr>
+                            ) : (
+                              <tr key={i} style={{ borderBottom: '1px solid #21262d' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#161b2280'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                <td style={{ padding: '11px 16px', color: '#e6edf3' }}>{f.item}</td>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: f.amount > 0 ? '#f85149' : '#484f58' }}>{formatRp(f.amount)}</td>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#8b949e' }}>{f.percentage}</td>
+                                <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
+                                  <button onClick={() => { setEditingRow({ ...f, type: 'fixed' }); setEditForm({ amount: f.amount }) }}
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #30363d', background: 'transparent', color: '#8b949e', cursor: 'pointer' }}>
+                                    Edit
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Section: Pemasukan */}
                   {data.income.length > 0 && (
                     <div className="card" style={{ overflow: 'auto' }}>
                       <div style={{ padding: '12px 16px', borderBottom: '1px solid #21262d' }}>
@@ -581,8 +797,70 @@ export default function Home() {
                       </table>
                     </div>
                   )}
+
+                  {/* Section: Saving */}
+                  {data.saving && data.saving.length > 0 && (
+                    <div className="card" style={{ overflow: 'auto' }}>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid #21262d' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#58a6ff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tabungan / Investasi</span>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <tbody>
+                          {data.saving.map((s, i) => (
+                            editingRow !== null && editingRow.rowNum === s.rowNum && editingRow.type === 'saving' ? (
+                              <tr key={i} style={{ background: '#161b22', borderBottom: '1px solid #21262d' }}>
+                                <td style={{ padding: '8px 12px' }}>
+                                  <input type="text" value={editForm.component} onChange={e => setEditForm({ ...editForm, component: e.target.value })}
+                                    style={{ padding: '6px 10px', fontSize: 12 }} maxLength={200} />
+                                </td>
+                                <td style={{ padding: '8px 12px' }}>
+                                  <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
+                                    style={{ padding: '6px 10px', fontSize: 12, textAlign: 'right', width: 110 }} />
+                                </td>
+                                <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                                  <button onClick={() => handleSaveEdit('saving')} disabled={editSaving}
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: 'none', background: '#3fb950', color: '#0d1117', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
+                                    {editSaving ? '...' : 'Simpan'}
+                                  </button>
+                                  <button onClick={() => setEditingRow(null)}
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: '1px solid #30363d', background: 'transparent', color: '#8b949e', cursor: 'pointer' }}>
+                                    Batal
+                                  </button>
+                                </td>
+                              </tr>
+                            ) : (
+                              <tr key={i} style={{ borderBottom: '1px solid #21262d' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#161b2280'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                <td style={{ padding: '11px 16px', color: '#e6edf3' }}>{s.component}</td>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: '#58a6ff' }}>{formatRp(s.amount)}</td>
+                                <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
+                                  <button onClick={() => { setEditingRow({ ...s, type: 'saving' }); setEditForm({ component: s.component, amount: s.amount }) }}
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #30363d', background: 'transparent', color: '#8b949e', cursor: 'pointer', marginRight: 6 }}>
+                                    Edit
+                                  </button>
+                                  <button onClick={() => handleDelete(s, 'saving')}
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #f8514940', background: 'transparent', color: '#f85149', cursor: 'pointer' }}>
+                                    Hapus
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
+
+            </>
+          )}
+        </main>
+      </div>
+    </>
+  )
+}
 
 import { requireAuth } from '../lib/auth'
 export const getServerSideProps = requireAuth()
