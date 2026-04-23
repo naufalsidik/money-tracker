@@ -1,6 +1,6 @@
 import { withAuth } from '../../lib/auth'
 import { getSheets, getCurrentSheetName, getPeriodLabel, parseAmount, SPREADSHEET_ID } from '../../lib/sheets'
-import { isValidSheetName } from '../../lib/validation'
+import { isValidSheetName, FIXED_ITEMS } from '../../lib/validation'
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -10,7 +10,6 @@ async function handler(req, res) {
   const requestedSheet = req.query.sheet
   const sheetName = requestedSheet || getCurrentSheetName()
 
-  // Validasi nama sheet — harus dari whitelist nama bulan Indonesia
   if (!isValidSheetName(sheetName)) {
     return res.status(400).json({ error: 'Nama sheet tidak valid' })
   }
@@ -18,23 +17,25 @@ async function handler(req, res) {
   const sheets = getSheets()
 
   try {
-    const varRes = await sheets.spreadsheets.values.get({
+    // Fetch semua range sekaligus dengan batchGet — lebih efisien
+    const batchRes = await sheets.spreadsheets.values.batchGet({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${sheetName}!B2:E`,
-    })
-    const incRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${sheetName}!G2:I`,
-    })
-    const rekapRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${sheetName}!K2:P`,
+      ranges: [
+        `${sheetName}!B2:E`,     // variable cost
+        `${sheetName}!G2:I`,     // income (akan di-parse, fixed cost di-skip karena start row 11)
+        `${sheetName}!K2:P`,     // rekap
+        `${sheetName}!G11:I15`,  // fixed cost (item, jumlah, persentase)
+        `${sheetName}!G37:H39`,  // saving (komponen, jumlah)
+      ],
     })
 
-    const allVarRows = varRes.data.values || []
+    const [varRes, incRes, rekapRes, fixedRes, savingRes] = batchRes.data.valueRanges
+
+    // === Variable Cost ===
+    const allVarRows = varRes.values || []
     const transactions = []
     allVarRows.forEach((r, i) => {
-      const rowNum = i + 2 // B2 = row 2
+      const rowNum = i + 2
       const dateVal = String(r[0] || '')
       const isDate = /\d/.test(dateVal) && (dateVal.includes('-') || dateVal.includes('/'))
       if (r[0] && r[3] && isDate) {
@@ -48,10 +49,16 @@ async function handler(req, res) {
       }
     })
 
-    const allIncRows = incRes.data.values || []
+    // === Income ===
+    // Ambil dari row 2 sampai sebelum row 11 (G2:I10 maksimal)
+    // Karena kita fetch G2:I, data row fixed cost (G11-G15) juga ada di array,
+    // tapi kita filter berdasarkan isDate biar gak kebawa ke income
+    const allIncRows = incRes.values || []
     const income = []
     allIncRows.forEach((r, i) => {
       const rowNum = i + 2
+      // Cuma parse sampai row 10 (batas income)
+      if (rowNum > 10) return
       const dateVal = String(r[0] || '')
       const isDate = /\d/.test(dateVal) && (dateVal.includes('-') || dateVal.includes('/'))
       if (r[0] && r[2] && isDate) {
@@ -64,7 +71,25 @@ async function handler(req, res) {
       }
     })
 
-    const rekapRows = (rekapRes.data.values || []).filter(r => r[0] && r[1])
+    // === Fixed Cost ===
+    // G11:I15 — 5 item fixed. Kolom G = nama item (preset), H = jumlah, I = persentase
+    const allFixedRows = fixedRes.values || []
+    const fixedCost = []
+    FIXED_ITEMS.forEach((expectedItem, idx) => {
+      const rowNum = 11 + idx
+      const row = allFixedRows[idx] || []
+      // Baca dari sheet; kalau kolom G tidak match (user edit langsung), tetap pakai yang dari sheet
+      const itemName = row[0] || expectedItem
+      fixedCost.push({
+        rowNum,
+        item: itemName,
+        amount: parseAmount(row[1]),
+        percentage: row[2] || '0.00%',
+      })
+    })
+
+    // === Rekap Harian ===
+    const rekapRows = (rekapRes.values || []).filter(r => r[0] && r[1])
     const rekap = rekapRows.map(r => ({
       date: r[0] || '',
       jumlah: parseAmount(r[1]),
@@ -74,8 +99,25 @@ async function handler(req, res) {
       avgExpense: parseAmount(r[5]),
     }))
 
+    // === Saving ===
+    // G37:H39 — 3 slot. Dinamis, user bisa tambah, max 3.
+    const allSavingRows = savingRes.values || []
+    const saving = []
+    allSavingRows.forEach((r, i) => {
+      const rowNum = 37 + i
+      if (r[0] && String(r[0]).trim() !== '') {
+        saving.push({
+          rowNum,
+          component: r[0] || '',
+          amount: parseAmount(r[1]),
+        })
+      }
+    })
+
+    // === Summary ===
     const totalIncome = income.reduce((s, i) => s + i.amount, 0)
     const totalVariable = transactions.reduce((s, t) => s + t.amount, 0)
+    const totalFixed = fixedCost.reduce((s, f) => s + f.amount, 0)
     const categoryMap = {}
     transactions.forEach(t => {
       categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount
@@ -86,12 +128,19 @@ async function handler(req, res) {
       period: getPeriodLabel(sheetName),
       transactions,
       income,
+      fixedCost,
+      saving,
       rekap,
-      summary: { totalIncome, totalVariable, categoryBreakdown: categoryMap }
+      summary: {
+        totalIncome,
+        totalVariable,
+        totalFixed,
+        totalExpense: totalVariable + totalFixed,
+        categoryBreakdown: categoryMap,
+      }
     })
   } catch (err) {
     console.error('[api/data]', err.message)
-    // Jangan leak detail error ke client
     res.status(500).json({ error: 'Gagal mengambil data sheet' })
   }
 }
