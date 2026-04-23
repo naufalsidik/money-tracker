@@ -59,6 +59,11 @@ select option {
   opacity: 0.85;
 }
 
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-ghost {
   background: transparent;
   color: #8b949e;
@@ -111,4 +116,31 @@ select option {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Markdown analysis styling */
+.analysis-markdown {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #c9d1d9;
+}
+.analysis-markdown strong {
+  color: #f0a500;
+  font-weight: 600;
+}
+.analysis-markdown p {
+  margin-bottom: 12px;
+}
+.analysis-markdown ol, .analysis-markdown ul {
+  margin-left: 20px;
+  margin-bottom: 12px;
+}
+.analysis-markdown li {
+  margin-bottom: 4px;
+}
+.analysis-markdown h1, .analysis-markdown h2, .analysis-markdown h3 {
+  color: #e6edf3;
+  font-weight: 600;
+  margin-top: 16px;
+  margin-bottom: 8px;
 }
