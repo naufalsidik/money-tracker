@@ -4,7 +4,6 @@ import {
   LineChart, Line, CartesianGrid, Legend
 } from 'recharts'
 import Head from 'next/head'
-import ReactMarkdown from 'react-markdown'
 import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../lib/constants'
 
 function formatRp(num) {
@@ -57,8 +56,6 @@ export default function Home() {
   const [formData, setFormData] = useState({ date: todayFormatted(), description: '', category: '', amount: '', component: '' })
   const [submitting, setSubmitting] = useState(false)
   const [submitMsg, setSubmitMsg] = useState('')
-  const [analysis, setAnalysis] = useState('')
-  const [analyzing, setAnalyzing] = useState(false)
   const [initLoading, setInitLoading] = useState(false)
   const [initMsg, setInitMsg] = useState('')
   const [editingRow, setEditingRow] = useState(null)
@@ -156,28 +153,6 @@ export default function Home() {
     }
     setSubmitting(false)
     setTimeout(() => setSubmitMsg(''), 4000)
-  }
-
-  async function handleAnalyze() {
-    setAnalyzing(true)
-    setAnalysis('')
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          summary: data.summary,
-          transactions: data.transactions,
-          income: data.income,
-          period: data.period,
-        }),
-      })
-      const json = await res.json()
-      setAnalysis(json.analysis || json.error || 'Tidak ada hasil.')
-    } catch {
-      setAnalysis('Gagal mengambil analisis.')
-    }
-    setAnalyzing(false)
   }
 
   async function handleInitSheet() {
@@ -279,7 +254,6 @@ export default function Home() {
               { id: 'dashboard', label: '📊 Dashboard' },
               { id: 'add', label: '➕ Tambah' },
               { id: 'transactions', label: '📋 Transaksi' },
-              { id: 'analysis', label: '🤖 Analisis AI' },
             ].map(t => (
               <button
                 key={t.id}
@@ -609,45 +583,6 @@ export default function Home() {
                   )}
                 </div>
               )}
-
-
-              {/* AI ANALYSIS */}
-              {tab === 'analysis' && (
-                <div style={{ maxWidth: 700, margin: '0 auto' }}>
-                  <div className="card" style={{ padding: 24 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
-                      <div>
-                        <h2 style={{ fontWeight: 600, fontSize: 17, color: '#e6edf3' }}>Analisis AI</h2>
-                        <p style={{ fontSize: 11, color: '#8b949e', marginTop: 4 }}>Periode: {data.period}</p>
-                      </div>
-                      <button className="btn-primary" onClick={handleAnalyze} disabled={analyzing}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                        {analyzing ? <><div className="spinner"></div> Menganalisa...</> : '🤖 Analisa Sekarang'}
-                      </button>
-                    </div>
-
-                    {!analysis && !analyzing && (
-                      <div style={{ textAlign: 'center', padding: '48px 0', color: '#8b949e' }}>
-                        <p style={{ fontSize: 40, marginBottom: 12 }}>🤖</p>
-                        <p style={{ fontSize: 13 }}>Klik tombol di atas untuk mendapatkan analisis keuangan bulan ini</p>
-                      </div>
-                    )}
-
-                    {analysis && (
-                      <div className="analysis-markdown">
-                        <ReactMarkdown>{analysis}</ReactMarkdown>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </main>
-      </div>
-    </>
-  )
-}
 
 import { requireAuth } from '../lib/auth'
 export const getServerSideProps = requireAuth()
