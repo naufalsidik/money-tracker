@@ -1,7 +1,14 @@
 import { withAuth } from '../../lib/auth'
 import { getSheets, getCurrentSheetName, SPREADSHEET_ID } from '../../lib/sheets'
 import { MONTH_ABBR } from '../../lib/constants'
-import { isValidSheetName, validateVariable, validateIncome, validateSaving } from '../../lib/validation'
+import {
+  isValidSheetName,
+  validateVariable,
+  validateIncome,
+  validateSaving,
+  validateFixed,
+  FIXED_ITEMS,
+} from '../../lib/validation'
 
 function formatDateForSheets(dateStr) {
   if (!dateStr) return ''
@@ -28,7 +35,6 @@ async function findNextEmptyRow(sheets, sheetName, column, startRow, endRow) {
     }
   }
   const nextRow = startRow + lastFilledIndex + 1
-  // Bounds check — cegah overflow ke row yang tidak di-format
   if (nextRow > endRow) {
     const err = new Error(`Section penuh. Maksimal ${endRow - startRow + 1} entri, silakan rapikan data lama di Google Sheet.`)
     err.statusCode = 400
@@ -37,27 +43,37 @@ async function findNextEmptyRow(sheets, sheetName, column, startRow, endRow) {
   return nextRow
 }
 
+// Ambil jumlah fixed cost yang sudah terisi di row tertentu
+// Dipakai untuk konfirmasi "replace" di client
+async function getFixedAmount(sheets, sheetName, rowNum) {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!H${rowNum}`,
+  })
+  const val = res.data.values?.[0]?.[0]
+  if (!val) return 0
+  return parseInt(String(val).replace(/[^0-9]/g, '')) || 0
+}
+
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { type, data, sheet } = req.body || {}
+  const { type, data, sheet, confirm } = req.body || {}
 
-  // Validasi type
-  if (!['variable', 'income', 'saving'].includes(type)) {
+  if (!['variable', 'fixed', 'income', 'saving'].includes(type)) {
     return res.status(400).json({ error: 'Tipe transaksi tidak valid' })
   }
 
-  // Validasi sheet name
   const sheetName = sheet || getCurrentSheetName()
   if (!isValidSheetName(sheetName)) {
     return res.status(400).json({ error: 'Nama sheet tidak valid' })
   }
 
-  // Validasi data per tipe
   let validationErrors = []
   if (type === 'variable') validationErrors = validateVariable(data)
+  else if (type === 'fixed') validationErrors = validateFixed(data)
   else if (type === 'income') validationErrors = validateIncome(data)
   else if (type === 'saving') validationErrors = validateSaving(data)
 
@@ -80,6 +96,34 @@ async function handler(req, res) {
           values: [[formattedDate, description.trim(), category, Number(amount)]],
         },
       })
+    } else if (type === 'fixed') {
+      // Fixed cost: write ke row yang sesuai dengan item
+      const { item, amount } = data
+      const itemIdx = FIXED_ITEMS.indexOf(item)
+      if (itemIdx === -1) {
+        return res.status(400).json({ error: 'Item tidak valid' })
+      }
+      const rowNum = 11 + itemIdx // G11 = Kosan, G12 = Internet, dst
+
+      // Cek existing value untuk confirm flow
+      const existing = await getFixedAmount(sheets, sheetName, rowNum)
+      if (existing > 0 && !confirm) {
+        return res.status(409).json({
+          needsConfirm: true,
+          existing,
+          message: `Item ${item} sudah terisi Rp${existing.toLocaleString('id-ID')}`,
+        })
+      }
+
+      // Write ke kolom H saja (kolom G preset, I formula)
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${sheetName}!H${rowNum}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[Number(amount)]],
+        },
+      })
     } else if (type === 'income') {
       const { date, description, amount } = data
       const formattedDate = formatDateForSheets(date)
@@ -94,10 +138,11 @@ async function handler(req, res) {
       })
     } else if (type === 'saving') {
       const { component, amount } = data
-      const nextRow = await findNextEmptyRow(sheets, sheetName, 'H', 26, 35)
+      // Range baru: G37:H39 — dinamis, max 3 row
+      const nextRow = await findNextEmptyRow(sheets, sheetName, 'G', 37, 39)
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${sheetName}!H${nextRow}:I${nextRow}`,
+        range: `${sheetName}!G${nextRow}:H${nextRow}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[component.trim(), Number(amount)]],
