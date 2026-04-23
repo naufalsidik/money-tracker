@@ -1,7 +1,15 @@
 import { withAuth } from '../../lib/auth'
 import { getSheets, SPREADSHEET_ID } from '../../lib/sheets'
 import { MONTH_ABBR } from '../../lib/constants'
-import { isValidSheetName, validateVariable, validateIncome, isValidRowNum } from '../../lib/validation'
+import {
+  isValidSheetName,
+  validateVariable,
+  validateIncome,
+  validateSaving,
+  validateFixed,
+  isValidRowNum,
+  isValidAmount,
+} from '../../lib/validation'
 
 function formatDateForSheets(dateStr) {
   if (!dateStr) return ''
@@ -20,12 +28,10 @@ async function handler(req, res) {
 
   const { action, type, rowNum, sheetName, data } = req.body || {}
 
-  // Validasi action
   if (!['delete', 'update'].includes(action)) {
     return res.status(400).json({ error: 'Action tidak valid' })
   }
 
-  // Validasi sheet & row
   if (!isValidSheetName(sheetName)) {
     return res.status(400).json({ error: 'Nama sheet tidak valid' })
   }
@@ -33,12 +39,25 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Nomor row tidak valid' })
   }
 
+  // Fixed cost tidak boleh di-delete (nanti formula rusak)
+  if (action === 'delete' && type === 'fixed') {
+    return res.status(400).json({ error: 'Fixed cost tidak bisa dihapus. Set jumlah 0 untuk reset.' })
+  }
+
   // Validasi type untuk update
   if (action === 'update') {
-    if (!['variable', 'income'].includes(type)) {
+    const validTypes = ['variable', 'income', 'saving', 'fixed']
+    if (!validTypes.includes(type)) {
       return res.status(400).json({ error: 'Tipe tidak valid untuk update' })
     }
-    const errors = type === 'variable' ? validateVariable(data) : validateIncome(data)
+    let errors = []
+    if (type === 'variable') errors = validateVariable(data)
+    else if (type === 'income') errors = validateIncome(data)
+    else if (type === 'saving') errors = validateSaving(data)
+    else if (type === 'fixed') {
+      // Fixed cuma update jumlah — cek amount saja
+      if (!isValidAmount(data?.amount, true)) errors = ['Jumlah tidak valid']
+    }
     if (errors.length > 0) {
       return res.status(400).json({ error: errors.join(', ') })
     }
@@ -48,13 +67,22 @@ async function handler(req, res) {
 
   try {
     if (action === 'delete') {
-      // Ambil sheetId dari metadata
       const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID })
       const sheet = meta.data.sheets.find(s => s.properties.title === sheetName)
       if (!sheet) return res.status(404).json({ error: 'Sheet tidak ditemukan' })
 
       const sheetId = sheet.properties.sheetId
 
+      // Saving pakai clear, bukan delete row (karena row 37-39 adalah slot tetap di sheet)
+      if (type === 'saving') {
+        await sheets.spreadsheets.values.clear({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${sheetName}!G${rowNum}:H${rowNum}`,
+        })
+        return res.json({ success: true })
+      }
+
+      // Variable & income: hapus row fisik
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         requestBody: {
@@ -93,6 +121,27 @@ async function handler(req, res) {
           valueInputOption: 'USER_ENTERED',
           requestBody: {
             values: [[formatDateForSheets(date), description.trim(), Number(amount)]]
+          }
+        })
+      } else if (type === 'saving') {
+        const { component, amount } = data
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${sheetName}!G${rowNum}:H${rowNum}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[component.trim(), Number(amount)]]
+          }
+        })
+      } else if (type === 'fixed') {
+        const { amount } = data
+        // Fixed cost: cuma update kolom H (jumlah), kolom G preset, I formula
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${sheetName}!H${rowNum}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[Number(amount)]]
           }
         })
       }
