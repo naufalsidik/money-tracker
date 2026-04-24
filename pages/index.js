@@ -13,6 +13,10 @@ function formatRp(num) {
   return 'Rp' + Number(num).toLocaleString('id-ID')
 }
 
+function maskRp() {
+  return 'Rp•••••'
+}
+
 function todayFormatted() {
   const d = new Date()
   const dd = String(d.getDate()).padStart(2, '0')
@@ -54,6 +58,26 @@ export default function Home() {
   const [availableSheets, setAvailableSheets] = useState([])
   const [selectedSheet, setSelectedSheet] = useState('')
   const [currentMonth] = useState(getCurrentMonthName())
+  const [hideNominal, setHideNominal] = useState(false)
+
+  // Load hide preference dari localStorage saat mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('mt_hide_nominal')
+      if (saved === '1') setHideNominal(true)
+    } catch {}
+  }, [])
+
+  function toggleHide() {
+    const next = !hideNominal
+    setHideNominal(next)
+    try {
+      localStorage.setItem('mt_hide_nominal', next ? '1' : '0')
+    } catch {}
+  }
+
+  // Helper: tampilkan nominal atau masked tergantung state
+  const showRp = (num) => hideNominal ? maskRp() : formatRp(num)
 
   // Form state: type = variable/income/saving, subType = variable/fixed (untuk pengeluaran)
   const [formType, setFormType] = useState('variable')
@@ -308,6 +332,19 @@ export default function Home() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                onClick={toggleHide}
+                aria-label={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
+                title={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
+                style={{
+                  fontSize: 14, padding: '7px 12px', borderRadius: 8,
+                  border: '1px solid #21262d', background: 'transparent',
+                  color: '#8b949e', cursor: 'pointer',
+                  fontFamily: 'Sora, sans-serif', lineHeight: 1
+                }}
+              >
+                {hideNominal ? '🙈' : '👁️'}
+              </button>
               <button onClick={handleLogout} style={{ fontSize: 12, padding: '7px 14px', borderRadius: 8, border: '1px solid #21262d', background: 'transparent', color: '#8b949e', cursor: 'pointer' }}>Keluar</button>
               {selectedSheet && !nextMonthExists && nextMonth && (
                 <button
@@ -316,7 +353,8 @@ export default function Home() {
                   style={{
                     fontSize: 12, padding: '7px 14px', borderRadius: 8,
                     border: '1px solid #f0a500', background: 'transparent',
-                    color: '#f0a500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
+                    color: '#f0a500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                    whiteSpace: 'nowrap', fontFamily: 'Sora, sans-serif'
                   }}
                 >
                   {initLoading ? '⏳' : '✨'} Buat Sheet {nextMonth}
@@ -386,9 +424,9 @@ export default function Home() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
                     {[
-                      { label: 'Total Pemasukan', value: formatRp(totalIncome), color: '#3fb950' },
-                      { label: 'Total Pengeluaran', value: formatRp(totalExpense), color: '#f85149', sub: `Var ${formatRp(totalVar)} · Fix ${formatRp(totalFixed)}` },
-                      { label: 'Sisa', value: formatRp(selisih), color: selisih >= 0 ? '#3fb950' : '#f85149' },
+                      { label: 'Total Pemasukan', value: showRp(totalIncome), color: '#3fb950' },
+                      { label: 'Total Pengeluaran', value: showRp(totalExpense), color: '#f85149', sub: `Var ${showRp(totalVar)} · Fix ${showRp(totalFixed)}` },
+                      { label: 'Sisa', value: showRp(selisih), color: selisih >= 0 ? '#3fb950' : '#f85149' },
                       { label: 'Transaksi', value: data.transactions.length, color: '#e6edf3' },
                     ].map((card, i) => (
                       <div key={i} className="card" style={{ padding: 18 }}>
@@ -409,7 +447,7 @@ export default function Home() {
                           <Tooltip content={<CustomTooltip />} />
                           <Bar dataKey="value" radius={[0, 4, 4, 0]}
                             fill="#58a6ff"
-                            label={{ position: 'right', fontSize: 11, fill: '#8b949e', formatter: v => formatRp(v) }}
+                            label={{ position: 'right', fontSize: 11, fill: '#8b949e', formatter: v => showRp(v) }}
                           />
                         </BarChart>
                       </ResponsiveContainer>
@@ -424,7 +462,7 @@ export default function Home() {
                           <span style={{ fontSize: 13, color: '#e6edf3' }}>{f.item}</span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <span style={{ fontSize: 11, color: '#8b949e', fontFamily: 'JetBrains Mono, monospace' }}>{f.percentage}</span>
-                            <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: f.amount > 0 ? '#f85149' : '#484f58', minWidth: 100, textAlign: 'right' }}>{formatRp(f.amount)}</span>
+                            <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: f.amount > 0 ? '#f85149' : '#484f58', minWidth: 100, textAlign: 'right' }}>{showRp(f.amount)}</span>
                           </div>
                         </div>
                       ))}
@@ -461,7 +499,7 @@ export default function Home() {
                           }}>{t.category}</span>
                           <span style={{ fontSize: 13, color: '#e6edf3' }}>{t.description}</span>
                         </div>
-                        <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: '#f85149' }}>{formatRp(t.amount)}</span>
+                        <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: '#f85149' }}>{showRp(t.amount)}</span>
                       </div>
                     ))}
                     {data.transactions.length === 0 && (
@@ -687,7 +725,7 @@ export default function Home() {
                   {data.fixedCost && data.fixedCost.length > 0 && (
                     <div className="card" style={{ overflow: 'auto' }}>
                       <div style={{ padding: '12px 16px', borderBottom: '1px solid #21262d' }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#bc8cff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fixed Cost</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#bc8cff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pengeluaran Tetap</span>
                       </div>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
