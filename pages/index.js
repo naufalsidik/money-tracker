@@ -302,7 +302,7 @@ export default function Home() {
         .sort((a, b) => b[1] - a[1])
         .map(([name, value]) => ({ name, value }))
     : []
-  const rekapData = data?.rekap?.slice(0, 20).map(r => ({
+  const rekapData = data?.rekap?.slice(0, 30).map(r => ({
     date: r.date, Pengeluaran: r.jumlah, Budget: r.wajar,
   })) || []
   const totalIncome = data?.summary?.totalIncome || 0
