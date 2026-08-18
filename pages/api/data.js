@@ -1,131 +1,173 @@
 import { withAuth } from '../../lib/auth'
-import { getSheets, getCurrentSheetName, getPeriodLabel, parseAmount, SPREADSHEET_ID } from '../../lib/sheets'
-import { isValidSheetName, FIXED_ITEMS } from '../../lib/validation'
+import { sql, toNumber } from '../../lib/db'
+import {
+  getCurrentPeriod,
+  getPeriodLabel,
+  getPeriodDates,
+  formatDateLabel,
+  isValidMonth,
+} from '../../lib/periods'
+import { FIXED_ITEMS } from '../../lib/validation'
+
+// Bentuk JSON yang dikembalikan endpoint ini SENGAJA dibuat sama persis
+// dengan versi Google Sheets, termasuk nama field `rowNum` dan `sheetName`.
+// Tujuannya supaya pages/index.js (904 baris) tidak perlu disentuh sama sekali.
+// Bedanya cuma satu: `rowNum` sekarang berisi id dari database, bukan nomor
+// baris spreadsheet. Nilainya bisa lebih besar dari 200.
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const requestedSheet = req.query.sheet
-  const sheetName = requestedSheet || getCurrentSheetName()
+  const current = getCurrentPeriod()
+  const month = req.query.sheet || current.month
+  const year = parseInt(req.query.year, 10) || current.year
 
-  if (!isValidSheetName(sheetName)) {
-    return res.status(400).json({ error: 'Nama sheet tidak valid' })
+  if (!isValidMonth(month)) {
+    return res.status(400).json({ error: 'Nama periode tidak valid' })
   }
 
-  const sheets = getSheets()
-
   try {
-    // Fetch semua range sekaligus dengan batchGet — lebih efisien
-    const batchRes = await sheets.spreadsheets.values.batchGet({
-      spreadsheetId: SPREADSHEET_ID,
-      ranges: [
-        `${sheetName}!B2:E`,     // variable cost
-        `${sheetName}!G2:I`,     // income (akan di-parse, fixed cost di-skip karena start row 11)
-        `${sheetName}!K2:P`,     // rekap
-        `${sheetName}!G11:I15`,  // fixed cost (item, jumlah, persentase)
-        `${sheetName}!G37:H39`,  // saving (komponen, jumlah)
-      ],
-    })
+    // Pastikan 5 baris fixed cost selalu ada untuk periode ini.
+    // ON CONFLICT DO NOTHING artinya: kalau barisnya sudah ada, lewati.
+    // Tanpa ini, item fixed cost yang belum pernah diisi tidak punya id
+    // sehingga tidak bisa di-edit dari UI.
+    await sql`
+      INSERT INTO fixed_costs (month, year, item, amount)
+      SELECT ${month}, ${year}, t.item, 0
+      FROM unnest(${FIXED_ITEMS}::text[]) AS t(item)
+      ON CONFLICT (month, year, item) DO NOTHING
+    `
 
-    const [varRes, incRes, rekapRes, fixedRes, savingRes] = batchRes.data.valueRanges
+    // to_char dipakai supaya tanggal keluar sebagai string 'YYYY-MM-DD'.
+    // Kalau dibiarkan sebagai tipe DATE, driver mengubahnya jadi objek Date
+    // dalam timezone server, dan tanggalnya bisa mundur satu hari.
+    const [varRows, incRows, fixedRows, savingRows] = await Promise.all([
+      sql`
+        SELECT id, to_char(tanggal, 'YYYY-MM-DD') AS tanggal,
+               description, category, amount
+        FROM variable_expenses
+        WHERE month = ${month} AND year = ${year}
+        ORDER BY tanggal ASC, id ASC
+      `,
+      sql`
+        SELECT id, to_char(tanggal, 'YYYY-MM-DD') AS tanggal,
+               description, amount
+        FROM incomes
+        WHERE month = ${month} AND year = ${year}
+        ORDER BY tanggal ASC, id ASC
+      `,
+      sql`
+        SELECT id, item, amount
+        FROM fixed_costs
+        WHERE month = ${month} AND year = ${year}
+      `,
+      sql`
+        SELECT id, component, amount
+        FROM savings
+        WHERE month = ${month} AND year = ${year}
+        ORDER BY id ASC
+      `,
+    ])
 
-    // === Variable Cost ===
-    const allVarRows = varRes.values || []
-    const transactions = []
-    allVarRows.forEach((r, i) => {
-      const rowNum = i + 2
-      const dateVal = String(r[0] || '')
-      const isDate = /\d/.test(dateVal) && (dateVal.includes('-') || dateVal.includes('/'))
-      if (r[0] && r[3] && isDate) {
-        transactions.push({
-          rowNum,
-          date: r[0] || '',
-          description: r[1] || '',
-          category: r[2] || '',
-          amount: parseAmount(r[3]),
-        })
-      }
-    })
-
-    // === Income ===
-    // Ambil dari row 2 sampai sebelum row 11 (G2:I10 maksimal)
-    // Karena kita fetch G2:I, data row fixed cost (G11-G15) juga ada di array,
-    // tapi kita filter berdasarkan isDate biar gak kebawa ke income
-    const allIncRows = incRes.values || []
-    const income = []
-    allIncRows.forEach((r, i) => {
-      const rowNum = i + 2
-      // Cuma parse sampai row 10 (batas income)
-      if (rowNum > 10) return
-      const dateVal = String(r[0] || '')
-      const isDate = /\d/.test(dateVal) && (dateVal.includes('-') || dateVal.includes('/'))
-      if (r[0] && r[2] && isDate) {
-        income.push({
-          rowNum,
-          date: r[0] || '',
-          description: r[1] || '',
-          amount: parseAmount(r[2]),
-        })
-      }
-    })
-
-    // === Fixed Cost ===
-    // G11:I15 — 5 item fixed. Kolom G = nama item (preset), H = jumlah, I = persentase
-    const allFixedRows = fixedRes.values || []
-    const fixedCost = []
-    FIXED_ITEMS.forEach((expectedItem, idx) => {
-      const rowNum = 11 + idx
-      const row = allFixedRows[idx] || []
-      // Baca dari sheet; kalau kolom G tidak match (user edit langsung), tetap pakai yang dari sheet
-      const itemName = row[0] || expectedItem
-      fixedCost.push({
-        rowNum,
-        item: itemName,
-        amount: parseAmount(row[1]),
-        percentage: row[2] || '0.00%',
-      })
-    })
-
-    // === Rekap Harian ===
-    const rekapRows = (rekapRes.values || []).filter(r => r[0] && r[1])
-    const rekap = rekapRows.map(r => ({
-      date: r[0] || '',
-      jumlah: parseAmount(r[1]),
-      wajar: parseAmount(r[2]),
-      selisih: parseAmount(r[3]),
-      sisa: parseAmount(r[4]),
-      avgExpense: parseAmount(r[5]),
+    const transactions = varRows.map(r => ({
+      rowNum: Number(r.id),
+      date: formatDateLabel(r.tanggal),
+      isoDate: r.tanggal,
+      description: r.description,
+      category: r.category,
+      amount: toNumber(r.amount),
     }))
 
-    // === Saving ===
-    // G37:H39 — 3 slot. Dinamis, user bisa tambah, max 3.
-    const allSavingRows = savingRes.values || []
-    const saving = []
-    allSavingRows.forEach((r, i) => {
-      const rowNum = 37 + i
-      if (r[0] && String(r[0]).trim() !== '') {
-        saving.push({
-          rowNum,
-          component: r[0] || '',
-          amount: parseAmount(r[1]),
-        })
+    const income = incRows.map(r => ({
+      rowNum: Number(r.id),
+      date: formatDateLabel(r.tanggal),
+      isoDate: r.tanggal,
+      description: r.description,
+      amount: toNumber(r.amount),
+    }))
+
+    const saving = savingRows.map(r => ({
+      rowNum: Number(r.id),
+      component: r.component,
+      amount: toNumber(r.amount),
+    }))
+
+    const totalIncome = income.reduce((s, i) => s + i.amount, 0)
+    const totalVariable = transactions.reduce((s, t) => s + t.amount, 0)
+    const totalSaving = saving.reduce((s, v) => s + v.amount, 0)
+
+    // Urutkan fixed cost mengikuti urutan FIXED_ITEMS, bukan urutan id,
+    // supaya tampilannya konsisten setiap kali dimuat.
+    const fixedByItem = new Map(fixedRows.map(r => [r.item, r]))
+    const fixedCost = FIXED_ITEMS.map(item => {
+      const row = fixedByItem.get(item)
+      const amount = row ? toNumber(row.amount) : 0
+      const pct = totalIncome > 0 ? (amount / totalIncome) * 100 : 0
+      return {
+        rowNum: row ? Number(row.id) : null,
+        item,
+        amount,
+        percentage: pct.toFixed(2) + '%',
+      }
+    })
+    const totalFixed = fixedCost.reduce((s, f) => s + f.amount, 0)
+
+    // ==========================================================
+    // REKAP HARIAN
+    //
+    // PERHATIAN: bagian ini adalah tebakan.
+    // Di versi Google Sheets, kolom wajar / selisih / sisa / avgExpense
+    // dihitung oleh formula yang ada di dalam spreadsheet, bukan di kode,
+    // jadi rumus aslinya tidak terbaca dari repo. Rumus di bawah adalah
+    // interpretasi paling masuk akal dari nama kolomnya. Cocokkan dengan
+    // formula asli di sheet kamu sebelum dipakai serius.
+    //
+    //   budget  = pemasukan - fixed cost - saving
+    //   wajar   = budget dibagi jumlah hari dalam periode (jatah harian)
+    //   jumlah  = total pengeluaran variable pada hari itu
+    //   selisih = wajar - jumlah (positif berarti hemat)
+    //   sisa    = budget - akumulasi pengeluaran sampai hari itu
+    //   avgExpense = rata-rata pengeluaran per hari sampai hari itu
+    // ==========================================================
+    const allDates = getPeriodDates(month, year)
+    const budget = totalIncome - totalFixed - totalSaving
+    const wajar = allDates.length > 0 ? Math.round(budget / allDates.length) : 0
+
+    const spendByDate = new Map()
+    transactions.forEach(t => {
+      spendByDate.set(t.isoDate, (spendByDate.get(t.isoDate) || 0) + t.amount)
+    })
+
+    // Rekap berhenti di hari ini. Hari yang belum terjadi tidak ditampilkan
+    // supaya grafik tidak jatuh ke nol di sisa periode.
+    const todayIso = new Date().toISOString().slice(0, 10)
+    const shownDates = allDates.filter(d => d <= todayIso)
+
+    let cumulative = 0
+    const rekap = shownDates.map((iso, i) => {
+      const jumlah = spendByDate.get(iso) || 0
+      cumulative += jumlah
+      return {
+        date: formatDateLabel(iso),
+        jumlah,
+        wajar,
+        selisih: wajar - jumlah,
+        sisa: budget - cumulative,
+        avgExpense: Math.round(cumulative / (i + 1)),
       }
     })
 
-    // === Summary ===
-    const totalIncome = income.reduce((s, i) => s + i.amount, 0)
-    const totalVariable = transactions.reduce((s, t) => s + t.amount, 0)
-    const totalFixed = fixedCost.reduce((s, f) => s + f.amount, 0)
-    const categoryMap = {}
+    const categoryBreakdown = {}
     transactions.forEach(t => {
-      categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount
+      categoryBreakdown[t.category] = (categoryBreakdown[t.category] || 0) + t.amount
     })
 
     res.json({
-      sheetName,
-      period: getPeriodLabel(sheetName),
+      sheetName: month,
+      year,
+      period: getPeriodLabel(month, year),
       transactions,
       income,
       fixedCost,
@@ -135,13 +177,14 @@ async function handler(req, res) {
         totalIncome,
         totalVariable,
         totalFixed,
+        totalSaving,
         totalExpense: totalVariable + totalFixed,
-        categoryBreakdown: categoryMap,
-      }
+        categoryBreakdown,
+      },
     })
   } catch (err) {
     console.error('[api/data]', err.message)
-    res.status(500).json({ error: 'Gagal mengambil data sheet' })
+    res.status(500).json({ error: 'Gagal mengambil data' })
   }
 }
 

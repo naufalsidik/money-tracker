@@ -1,113 +1,74 @@
 import { withAuth } from '../../lib/auth'
-import { getSheets, SPREADSHEET_ID } from '../../lib/sheets'
-import { MONTHS_ID, MONTH_ABBR } from '../../lib/constants'
-import { isValidSheetName } from '../../lib/validation'
+import { sql, toNumber } from '../../lib/db'
+import { getCurrentPeriod, isValidMonth, monthIndex } from '../../lib/periods'
+import { FIXED_ITEMS } from '../../lib/validation'
 
-// Generate tanggal rekap: 20 bulan awal sampai 19 bulan berikutnya
-// Pakai tahun dinamis (bukan hardcoded) biar tetep jalan di tahun kabisat ke depan
-function generateRekapDates(monthName) {
-  const idx = MONTHS_ID.indexOf(monthName)
-  if (idx === -1) return []
-
-  const year = new Date().getFullYear()
-  const nextIdx = (idx + 1) % 12
-  // Kalau start bulan adalah Desember, bulan berikutnya di tahun depan
-  const nextYear = idx === 11 ? year + 1 : year
-
-  const dates = []
-  // Tanggal 20 sampai akhir bulan awal
-  const daysInStartMonth = new Date(year, idx + 1, 0).getDate()
-  for (let d = 20; d <= daysInStartMonth; d++) {
-    dates.push(`${d}-${MONTH_ABBR[idx]}`)
-  }
-  // Tanggal 1 sampai 19 bulan berikutnya
-  // Note: nextYear dipakai implisit via new Date(nextYear, nextIdx+1, 0) seandainya
-  // mau cek hari di bulan next, tapi karena kita cuma iterasi 1-19, tidak perlu
-  for (let d = 1; d <= 19; d++) {
-    dates.push(`${d}-${MONTH_ABBR[nextIdx]}`)
-  }
-  return dates
-}
+// Di versi Google Sheets, endpoint ini menduplikat tab spreadsheet lengkap
+// dengan formulanya. Di Postgres tidak ada yang perlu diduplikat: tanggal
+// rekap dihitung on the fly, dan tabelnya sudah ada.
+//
+// Yang tersisa hanya satu kegunaan nyata: menyalin nilai fixed cost dari
+// periode sebelumnya, karena kosan dan langganan biasanya jumlahnya sama
+// tiap bulan.
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { newMonth, sourceMonth } = req.body || {}
+  const { newMonth, sourceMonth, year: yearRaw } = req.body || {}
 
-  if (!isValidSheetName(newMonth)) {
-    return res.status(400).json({ error: 'Nama bulan baru tidak valid' })
+  if (!isValidMonth(newMonth)) {
+    return res.status(400).json({ error: 'Nama periode baru tidak valid' })
   }
-  if (!isValidSheetName(sourceMonth)) {
-    return res.status(400).json({ error: 'Nama bulan source tidak valid' })
+  if (!isValidMonth(sourceMonth)) {
+    return res.status(400).json({ error: 'Nama periode sumber tidak valid' })
   }
 
-  const sheets = getSheets()
+  const current = getCurrentPeriod()
+  const sourceYear = parseInt(yearRaw, 10) || current.year
+
+  // Kalau sumbernya Desember dan targetnya Januari, berarti pindah tahun.
+  const newYear =
+    monthIndex(sourceMonth) === 11 && monthIndex(newMonth) === 0
+      ? sourceYear + 1
+      : sourceYear
 
   try {
-    const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID })
-    const allSheets = meta.data.sheets
-    const existingNames = allSheets.map(s => s.properties.title)
-
-    if (existingNames.includes(newMonth)) {
-      return res.json({ success: true, message: 'Sheet sudah ada' })
+    const existing = await sql`
+      SELECT 1 FROM fixed_costs
+      WHERE month = ${newMonth} AND year = ${newYear}
+      LIMIT 1
+    `
+    if (existing.length > 0) {
+      return res.json({ success: true, message: 'Periode sudah ada' })
     }
 
-    const sourceSheet = allSheets.find(s => s.properties.title === sourceMonth)
-    if (!sourceSheet) {
-      return res.status(400).json({ error: `Sheet "${sourceMonth}" tidak ditemukan` })
-    }
+    const sourceFixed = await sql`
+      SELECT item, amount FROM fixed_costs
+      WHERE month = ${sourceMonth} AND year = ${sourceYear}
+    `
+    const amountByItem = new Map(sourceFixed.map(r => [r.item, toNumber(r.amount)]))
 
-    const sourceSheetId = sourceSheet.properties.sheetId
+    // Insert 5 baris fixed cost untuk periode baru, nilainya disalin dari
+    // periode sumber. Item yang tidak ada di sumber diisi 0.
+    const items = FIXED_ITEMS
+    const amounts = FIXED_ITEMS.map(i => amountByItem.get(i) ?? 0)
 
-    // Duplicate sheet source
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SPREADSHEET_ID,
-      requestBody: {
-        requests: [{
-          duplicateSheet: {
-            sourceSheetId,
-            insertSheetIndex: allSheets.length,
-            newSheetName: newMonth,
-          }
-        }]
-      }
+    await sql`
+      INSERT INTO fixed_costs (month, year, item, amount)
+      SELECT ${newMonth}, ${newYear}, t.item, t.amount
+      FROM unnest(${items}::text[], ${amounts}::bigint[]) AS t(item, amount)
+      ON CONFLICT (month, year, item) DO NOTHING
+    `
+
+    res.json({
+      success: true,
+      message: `Periode "${newMonth} ${newYear}" berhasil dibuat`,
     })
-
-    // Clear data pengeluaran variable (B2:E60) — header di row 1 dipertahankan
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${newMonth}!B2:E60`,
-    })
-
-    // Clear data pemasukan (G3:I10) — baris formula JUMLAH dipertahankan
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${newMonth}!G3:I10`,
-    })
-
-    // Update tanggal rekap di kolom K
-    const rekapDates = generateRekapDates(newMonth)
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${newMonth}!K2:K${1 + rekapDates.length}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: rekapDates.map(d => [d]),
-      },
-    })
-
-    // Clear kolom rekap jumlah (L2:L32) — formula akan repopulate
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${newMonth}!L2:L32`,
-    })
-
-    res.json({ success: true, message: `Sheet "${newMonth}" berhasil dibuat` })
   } catch (err) {
     console.error('[api/init-sheet]', err.message)
-    res.status(500).json({ error: 'Gagal membuat sheet baru' })
+    res.status(500).json({ error: 'Gagal membuat periode baru' })
   }
 }
 

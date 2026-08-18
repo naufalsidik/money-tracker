@@ -1,50 +1,48 @@
 import { withAuth } from '../../lib/auth'
-import { getSheets, SPREADSHEET_ID } from '../../lib/sheets'
-import { MONTH_ABBR } from '../../lib/constants'
+import { sql } from '../../lib/db'
+import { getCurrentPeriod, isValidMonth, parseInputDate } from '../../lib/periods'
 import {
-  isValidSheetName,
   validateVariable,
   validateIncome,
   validateSaving,
-  validateFixed,
-  isValidRowNum,
+  isValidId,
   isValidAmount,
 } from '../../lib/validation'
 
-function formatDateForSheets(dateStr) {
-  if (!dateStr) return ''
-  if (/^\d{1,2}-[A-Za-z]{3}$/.test(dateStr)) return dateStr
-  const parts = dateStr.split('/')
-  if (parts.length === 3) {
-    return `${parts[0]}-${MONTH_ABBR[parseInt(parts[1]) - 1] || parts[1]}`
-  }
-  return dateStr
-}
+// Frontend masih mengirim field bernama `rowNum`. Isinya sekarang id
+// dari database. Nama field dipertahankan supaya pages/index.js tidak
+// perlu diubah.
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { action, type, rowNum, sheetName, data } = req.body || {}
+  const { action, type, rowNum, sheetName, year: yearRaw, data } = req.body || {}
 
   if (!['delete', 'update'].includes(action)) {
     return res.status(400).json({ error: 'Action tidak valid' })
   }
 
-  if (!isValidSheetName(sheetName)) {
-    return res.status(400).json({ error: 'Nama sheet tidak valid' })
-  }
-  if (!isValidRowNum(rowNum)) {
-    return res.status(400).json({ error: 'Nomor row tidak valid' })
+  const current = getCurrentPeriod()
+  const month = sheetName || current.month
+  const year = parseInt(yearRaw, 10) || current.year
+
+  if (!isValidMonth(month)) {
+    return res.status(400).json({ error: 'Nama periode tidak valid' })
   }
 
-  // Fixed cost tidak boleh di-delete (nanti formula rusak)
+  const id = Number(rowNum)
+  if (!isValidId(id)) {
+    return res.status(400).json({ error: 'ID baris tidak valid' })
+  }
+
+  // Fixed cost tidak dihapus, cuma di-set 0. Barisnya harus tetap ada
+  // karena itemnya preset.
   if (action === 'delete' && type === 'fixed') {
     return res.status(400).json({ error: 'Fixed cost tidak bisa dihapus. Set jumlah 0 untuk reset.' })
   }
 
-  // Validasi type untuk update
   if (action === 'update') {
     const validTypes = ['variable', 'income', 'saving', 'fixed']
     if (!validTypes.includes(type)) {
@@ -55,7 +53,6 @@ async function handler(req, res) {
     else if (type === 'income') errors = validateIncome(data)
     else if (type === 'saving') errors = validateSaving(data)
     else if (type === 'fixed') {
-      // Fixed cuma update jumlah — cek amount saja
       if (!isValidAmount(data?.amount, true)) errors = ['Jumlah tidak valid']
     }
     if (errors.length > 0) {
@@ -63,90 +60,86 @@ async function handler(req, res) {
     }
   }
 
-  const sheets = getSheets()
-
   try {
     if (action === 'delete') {
-      const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID })
-      const sheet = meta.data.sheets.find(s => s.properties.title === sheetName)
-      if (!sheet) return res.status(404).json({ error: 'Sheet tidak ditemukan' })
-
-      const sheetId = sheet.properties.sheetId
-
-      // Saving pakai clear, bukan delete row (karena row 37-39 adalah slot tetap di sheet)
-      if (type === 'saving') {
-        await sheets.spreadsheets.values.clear({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!G${rowNum}:H${rowNum}`,
-        })
-        return res.json({ success: true })
-      }
-
-      // Variable & income: hapus row fisik
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId: SPREADSHEET_ID,
-        requestBody: {
-          requests: [{
-            deleteDimension: {
-              range: {
-                sheetId,
-                dimension: 'ROWS',
-                startIndex: rowNum - 1,
-                endIndex: rowNum,
-              }
-            }
-          }]
-        }
-      })
-
-      return res.json({ success: true })
-    }
-
-    if (action === 'update') {
+      // Setiap query menyertakan month dan year, bukan hanya id.
+      // Ini mencegah penghapusan baris milik periode lain kalau
+      // frontend salah kirim id.
+      let result
       if (type === 'variable') {
-        const { date, description, category, amount } = data
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!B${rowNum}:E${rowNum}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[formatDateForSheets(date), description.trim(), category, Number(amount)]]
-          }
-        })
+        result = await sql`
+          DELETE FROM variable_expenses
+          WHERE id = ${id} AND month = ${month} AND year = ${year}
+          RETURNING id
+        `
       } else if (type === 'income') {
-        const { date, description, amount } = data
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!G${rowNum}:I${rowNum}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[formatDateForSheets(date), description.trim(), Number(amount)]]
-          }
-        })
+        result = await sql`
+          DELETE FROM incomes
+          WHERE id = ${id} AND month = ${month} AND year = ${year}
+          RETURNING id
+        `
       } else if (type === 'saving') {
-        const { component, amount } = data
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!G${rowNum}:H${rowNum}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[component.trim(), Number(amount)]]
-          }
-        })
-      } else if (type === 'fixed') {
-        const { amount } = data
-        // Fixed cost: cuma update kolom H (jumlah), kolom G preset, I formula
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!H${rowNum}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[Number(amount)]]
-          }
-        })
+        result = await sql`
+          DELETE FROM savings
+          WHERE id = ${id} AND month = ${month} AND year = ${year}
+          RETURNING id
+        `
+      } else {
+        return res.status(400).json({ error: 'Tipe tidak valid untuk delete' })
+      }
+
+      if (result.length === 0) {
+        return res.status(404).json({ error: 'Data tidak ditemukan' })
       }
       return res.json({ success: true })
     }
+
+    // action === 'update'
+    let result
+    if (type === 'variable') {
+      const iso = parseInputDate(data.date, month, year)
+      if (!iso) return res.status(400).json({ error: 'Format tanggal tidak valid' })
+      result = await sql`
+        UPDATE variable_expenses
+        SET tanggal = ${iso},
+            description = ${data.description.trim()},
+            category = ${data.category},
+            amount = ${Math.round(Number(data.amount))}
+        WHERE id = ${id} AND month = ${month} AND year = ${year}
+        RETURNING id
+      `
+    } else if (type === 'income') {
+      const iso = parseInputDate(data.date, month, year)
+      if (!iso) return res.status(400).json({ error: 'Format tanggal tidak valid' })
+      result = await sql`
+        UPDATE incomes
+        SET tanggal = ${iso},
+            description = ${data.description.trim()},
+            amount = ${Math.round(Number(data.amount))}
+        WHERE id = ${id} AND month = ${month} AND year = ${year}
+        RETURNING id
+      `
+    } else if (type === 'saving') {
+      result = await sql`
+        UPDATE savings
+        SET component = ${data.component.trim()},
+            amount = ${Math.round(Number(data.amount))}
+        WHERE id = ${id} AND month = ${month} AND year = ${year}
+        RETURNING id
+      `
+    } else if (type === 'fixed') {
+      result = await sql`
+        UPDATE fixed_costs
+        SET amount = ${Math.round(Number(data.amount))}
+        WHERE id = ${id} AND month = ${month} AND year = ${year}
+        RETURNING id
+      `
+    }
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({ error: 'Data tidak ditemukan' })
+    }
+    return res.json({ success: true })
   } catch (err) {
     console.error('[api/edit]', err.message)
     res.status(500).json({ error: 'Gagal memproses perubahan' })
