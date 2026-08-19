@@ -9,7 +9,8 @@ import {
   IkonMata, IkonMataTutup, IkonLembarBaru,
 } from '../../components/icons'
 import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../../lib/constants'
-import Link from 'next/link'
+import MoneyNav from '../../components/MoneyNav'
+import { useRouter } from 'next/router'
 
 const FIXED_ITEMS = ['Kosan', 'Internet', 'iCloud', 'Claude', 'Apple Music']
 
@@ -58,6 +59,25 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function Home() {
   const [tab, setTab] = useState('dashboard')
+  const router = useRouter()
+ 
+  // Tab ikut disimpan di URL sebagai ?tab=. Tanpa ini, tautan dari halaman
+  // Rutin atau Target tidak punya cara menunjuk bagian tertentu dan selalu
+  // mendarat di Dashboard.
+  useEffect(() => {
+    const t = router.query.tab
+    if (typeof t === 'string' && ['dashboard', 'add', 'transactions'].includes(t)) {
+      setTab(t)
+    }
+  }, [router.query.tab])
+ 
+  // shallow: true menahan Next menjalankan ulang getServerSideProps.
+  // Berpindah tab tidak butuh data baru dari server, jadi tanpa ini
+  // setiap klik memicu pemeriksaan sesi yang sia-sia.
+  function gantiTab(id) {
+    setTab(id)
+    router.replace({ pathname: '/money', query: { tab: id } }, undefined, { shallow: true })
+  }
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [availableSheets, setAvailableSheets] = useState([])
@@ -334,15 +354,6 @@ export default function Home() {
               )}
             </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                <Link href="/money/berulang" style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  minHeight: 44, padding: '0 var(--space-4)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600,
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border)', background: 'var(--surface)',
-                  color: 'var(--ink)', textDecoration: 'none', whiteSpace: 'nowrap',
-                }}>Berulang</Link>
-
                 <button
                   onClick={toggleHide}
                 aria-label={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
@@ -405,32 +416,7 @@ export default function Home() {
               chip di Job Tracker menyaring daftar yang sama — fungsinya beda,
               jadi bentuknya sengaja tidak disamakan. Yang diseragamkan hanya
               tinggi, warna, dan ukuran hurufnya. */}
-          <div style={{ padding: '0 var(--pad-section)', display: 'flex', gap: 'var(--space-6)' }} role="tablist">
-            {[
-              { id: 'dashboard', label: 'Dashboard', Icon: IkonGrafik },
-              { id: 'add', label: 'Tambah', Icon: IkonTambah },
-              { id: 'transactions', label: 'Transaksi', Icon: IkonDaftar },
-            ].map(t => (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={tab === t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                  minHeight: 44, padding: '0 2px',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
-                  background: 'none', border: 'none',
-                  borderBottom: tab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-                  color: tab === t.id ? 'var(--accent)' : 'var(--muted)',
-                  transition: 'color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)',
-                }}
-              >
-                <t.Icon width={17} height={17} />
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <MoneyNav tab={tab} onTab={gantiTab} />
         </header>
 
         <main style={{ padding: 'var(--space-6) var(--pad-section)' }}>
@@ -655,12 +641,41 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* Komponen — untuk Saving */}
+					{/* Komponen — untuk Saving */}
                     {formType === 'saving' && (
-                      <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Komponen</p>
-                        <input type="text" placeholder="Dana Darurat, Saham, Reksa Dana..." value={formData.component}
-                          onChange={e => setFormData({ ...formData, component: e.target.value })} maxLength={200} />
+                      <div style={{ marginBottom: 'var(--space-4)' }}>
+                        <p style={{
+                          fontSize: 'var(--text-2xs)', color: 'var(--muted)',
+                          marginBottom: 'var(--space-2)', textTransform: 'uppercase',
+                          letterSpacing: 'var(--tracking-label)',
+                        }}>Komponen</p>
+
+                        {/* Daftar pilihan datang dari target tabungan yang sudah
+                            dibuat. Progres target dihubungkan lewat nama komponen,
+                            jadi salah ketik satu huruf memutus riwayatnya. Memilih
+                            dari daftar menutup celah itu. Ketik bebas tetap boleh
+                            untuk komponen yang belum punya target. */}
+                        <input
+                          type="text"
+                          list="komponen-target"
+                          placeholder="Dana Darurat, Saham, Reksa Dana..."
+                          value={formData.component}
+                          onChange={e => setFormData({ ...formData, component: e.target.value })}
+                          maxLength={200}
+                          aria-describedby="komponen-bantu"
+                        />
+                        <datalist id="komponen-target">
+                          {(data?.savingGoals || []).map(k => <option key={k} value={k} />)}
+                        </datalist>
+
+                        {data?.savingGoals?.length > 0 && (
+                          <p id="komponen-bantu" style={{
+                            fontSize: 'var(--text-xs)', color: 'var(--muted)',
+                            marginTop: 'var(--space-2)',
+                          }}>
+                            Pilih dari daftar agar masuk ke target tabungan yang sudah ada.
+                          </p>
+                        )}
                       </div>
                     )}
 

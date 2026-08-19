@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Shell from '../../components/Shell'
 import { VAR_CATEGORIES } from '../../lib/constants'
 import { FIXED_ITEMS } from '../../lib/validation'
+import MoneyNav from '../../components/MoneyNav'
 
 const JENIS = [
   { id: 'income', label: 'Pemasukan', warna: 'var(--money-in)' },
@@ -84,11 +85,11 @@ export default function Berulang() {
   const ubah = (k, v) => setDraf(d => ({ ...d, [k]: v }))
 
   return (
-    <Shell title="Transaksi Berulang">
+    <Shell title="Rutin">
       <div className="hal">
         <header className="atas">
           <div>
-            <h1>Transaksi Berulang</h1>
+            <h1>Rutin</h1>
             <p className="sub">
               Template ini dimasukkan otomatis setiap periode baru dibuka.
               Nilai fixed cost hanya diisi bila masih kosong, jadi suntingan
@@ -96,12 +97,13 @@ export default function Berulang() {
             </p>
           </div>
           <div className="aksi">
-            <Link href="/money" className="btn">Kembali</Link>
             <button className="btn solid" onClick={() => setDraf({ ...KOSONG })}>
               Tambah template
             </button>
           </div>
         </header>
+
+        <MoneyNav aktif="rutin" />
 
         {galat && (
           <div className="galat" role="alert">

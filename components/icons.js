@@ -72,3 +72,20 @@ export const IkonLembarBaru = p => (
     <path d="M12 11.5v5M9.5 14h5" />
   </svg>
 )
+
+export const IkonUlang = p => (
+  <svg {...dasar} {...p}>
+    <path d="M20 11.5A8 8 0 0 0 6.3 6.3L4 8.5" />
+    <path d="M4 4v4.5h4.5" />
+    <path d="M4 12.5A8 8 0 0 0 17.7 17.7L20 15.5" />
+    <path d="M20 20v-4.5h-4.5" />
+  </svg>
+)
+
+export const IkonTarget = p => (
+  <svg {...dasar} {...p}>
+    <circle cx="12" cy="12" r="8.2" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+  </svg>
+)

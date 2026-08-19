@@ -176,6 +176,14 @@ async function handler(req, res) {
       categoryBreakdown[t.category] = (categoryBreakdown[t.category] || 0) + t.amount
     })
 
+    // Nama komponen yang punya target. Dikirim bersama data periode supaya
+    // form tambah tabungan bisa menawarkannya sebagai pilihan — tanpa
+    // permintaan jaringan tambahan.
+    const goalRows = await sql`
+      select component from saving_goals where aktif = true order by component
+    `
+    const savingGoals = goalRows.map(r => r.component)
+
     res.json({
       sheetName: month,
       year,
@@ -184,6 +192,7 @@ async function handler(req, res) {
       income,
       fixedCost,
       saving,
+	  savingGoals,
       rekap,
       summary: {
         totalIncome,
