@@ -9,6 +9,7 @@ import {
   IkonMata, IkonMataTutup, IkonLembarBaru,
 } from '../../components/icons'
 import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../../lib/constants'
+import Link from 'next/link'
 
 const FIXED_ITEMS = ['Kosan', 'Internet', 'iCloud', 'Claude', 'Apple Music']
 
@@ -332,10 +333,18 @@ export default function Home() {
                 </p>
               )}
             </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <Link href="/money/berulang" style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  minHeight: 44, padding: '0 var(--space-4)',
+                  fontSize: 'var(--text-sm)', fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)', background: 'var(--surface)',
+                  color: 'var(--ink)', textDecoration: 'none', whiteSpace: 'nowrap',
+                }}>Berulang</Link>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-              <button
-                onClick={toggleHide}
+                <button
+                  onClick={toggleHide}
                 aria-label={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
                 aria-pressed={hideNominal}
                 title={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}

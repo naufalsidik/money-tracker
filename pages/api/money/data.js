@@ -8,6 +8,7 @@ import {
   isValidMonth,
 } from '../../../lib/periods'
 import { FIXED_ITEMS } from '../../../lib/validation'
+import { terapkanRecurring } from '../../../lib/recurring'
 
 // Bentuk JSON yang dikembalikan endpoint ini SENGAJA dibuat sama persis
 // dengan versi Google Sheets, termasuk nama field `rowNum` dan `sheetName`.
@@ -39,6 +40,10 @@ async function handler(req, res) {
       FROM unnest(${FIXED_ITEMS}::text[]) AS t(item)
       ON CONFLICT (month, year, item) DO NOTHING
     `
+
+    // Setelah baris fixed cost dipastikan ada, isi nilai dari template berulang.
+    // Urutannya penting: template fixed cost mengisi baris, bukan membuatnya.
+    await terapkanRecurring(month, year)
 
     // to_char dipakai supaya tanggal keluar sebagai string 'YYYY-MM-DD'.
     // Kalau dibiarkan sebagai tipe DATE, driver mengubahnya jadi objek Date
