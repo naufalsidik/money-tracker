@@ -1,7 +1,7 @@
-import { withAuth } from '../../lib/auth'
-import { sql, toNumber } from '../../lib/db'
-import { getCurrentPeriod, isValidMonth, monthIndex } from '../../lib/periods'
-import { FIXED_ITEMS } from '../../lib/validation'
+import { withAuth } from '../../../lib/auth'
+import { sql, toNumber } from '../../../lib/db'
+import { getCurrentPeriod, isValidMonth, monthIndex } from '../../../lib/periods'
+import { FIXED_ITEMS } from '../../../lib/validation'
 
 // Di versi Google Sheets, endpoint ini menduplikat tab spreadsheet lengkap
 // dengan formulanya. Di Postgres tidak ada yang perlu diduplikat: tanggal

@@ -1,13 +1,13 @@
-import { withAuth } from '../../lib/auth'
-import { sql } from '../../lib/db'
-import { getCurrentPeriod, isValidMonth, parseInputDate } from '../../lib/periods'
+import { withAuth } from '../../../lib/auth'
+import { sql } from '../../../lib/db'
+import { getCurrentPeriod, isValidMonth, parseInputDate } from '../../../lib/periods'
 import {
   validateVariable,
   validateIncome,
   validateSaving,
   isValidId,
   isValidAmount,
-} from '../../lib/validation'
+} from '../../../lib/validation'
 
 // Frontend masih mengirim field bernama `rowNum`. Isinya sekarang id
 // dari database. Nama field dipertahankan supaya pages/index.js tidak

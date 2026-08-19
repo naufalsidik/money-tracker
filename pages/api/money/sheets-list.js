@@ -1,6 +1,6 @@
-import { withAuth } from '../../lib/auth'
-import { sql } from '../../lib/db'
-import { getCurrentPeriod, monthIndex } from '../../lib/periods'
+import { withAuth } from '../../../lib/auth'
+import { sql } from '../../../lib/db'
+import { getCurrentPeriod, monthIndex } from '../../../lib/periods'
 
 // Nama file dan bentuk responsnya dipertahankan (`{ sheets: [...] }`)
 // supaya pages/index.js tidak perlu diubah. Isinya sekarang daftar periode

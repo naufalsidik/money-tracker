@@ -176,7 +176,7 @@ export default function Login() {
 export async function getServerSideProps({ req, res }) {
   const session = await getSession(req, res)
   if (session?.user?.authenticated) {
-    return { redirect: { destination: '/', permanent: false } }
+    return { redirect: { destination: '/money', permanent: false } }
   }
   return { props: {} }
 }
