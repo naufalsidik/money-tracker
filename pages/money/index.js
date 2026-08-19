@@ -303,8 +303,9 @@ export default function Home() {
   const totalIncome = data?.summary?.totalIncome || 0
   const totalVar = data?.summary?.totalVariable || 0
   const totalFixed = data?.summary?.totalFixed || 0
+  const totalSaving = data?.summary?.totalSaving || 0
   const totalExpense = totalVar + totalFixed
-  const selisih = totalIncome - totalExpense
+  const selisih = totalIncome - totalExpense - totalSaving
 
   return (
     <Shell title="Money Tracker">
@@ -412,7 +413,7 @@ export default function Home() {
                     {[
                       { label: 'Total Pemasukan', value: showRp(totalIncome), color: '#3fb950' },
                       { label: 'Total Pengeluaran', value: showRp(totalExpense), color: '#f85149', sub: `Var ${showRp(totalVar)} · Fix ${showRp(totalFixed)}` },
-                      { label: 'Sisa', value: showRp(selisih), color: selisih >= 0 ? '#3fb950' : '#f85149' },
+                      { label: 'Sisa', value: showRp(selisih), color: selisih >= 0 ? '#3fb950' : '#f85149', sub: `Setelah tabungan ${showRp(totalSaving)}` },
                       { label: 'Transaksi', value: data.transactions.length, color: '#e6edf3' },
                     ].map((card, i) => (
                       <div key={i} className="card" style={{ padding: 18 }}>
