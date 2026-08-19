@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend
 } from 'recharts'
-import Head from 'next/head'
+import Shell from '../../components/Shell'
 import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../../lib/constants'
 
 const FIXED_ITEMS = ['Kosan', 'Internet', 'iCloud', 'Claude', 'Apple Music']
@@ -141,11 +141,6 @@ export default function Home() {
       }
     } catch { alert('Error.') }
     setEditSaving(false)
-  }
-
-  async function handleLogout() {
-    await fetch('/api/logout', { method: 'POST' })
-    window.location.href = '/login'
   }
 
   const fetchSheets = useCallback(async () => {
@@ -312,15 +307,7 @@ export default function Home() {
   const selisih = totalIncome - totalExpense
 
   return (
-    <>
-      <Head>
-        <title>Money Tracker</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-        <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-      </Head>
-
-      <div className="min-h-screen" style={{ background: '#0d1117', fontFamily: 'Sora, sans-serif' }}>
+    <Shell title="Money Tracker">
         {/* Header */}
         <header style={{ borderBottom: '1px solid #21262d' }}>
           <div style={{ maxWidth: 960, margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -345,7 +332,6 @@ export default function Home() {
               >
                 {hideNominal ? '🙈' : '👁️'}
               </button>
-              <button onClick={handleLogout} style={{ fontSize: 12, padding: '7px 14px', borderRadius: 8, border: '1px solid #21262d', background: 'transparent', color: '#8b949e', cursor: 'pointer' }}>Keluar</button>
               {selectedSheet && !nextMonthExists && nextMonth && (
                 <button
                   onClick={handleInitSheet}
@@ -895,8 +881,7 @@ export default function Home() {
             </>
           )}
         </main>
-      </div>
-    </>
+    </Shell>
   )
 }
 
