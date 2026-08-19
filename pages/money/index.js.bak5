@@ -433,7 +433,7 @@ export default function Home() {
 
           {!loading && !data && (
             <div style={{ textAlign: 'center', paddingTop: 80, color: 'var(--muted)' }}>
-              
+              <p style={{ fontSize: 'var(--text-2xl)', marginBottom: 12 }}>📭</p>
               <p>Tidak ada data ditemukan. Pastikan nama sheet sesuai dengan bulan dalam bahasa Indonesia.</p>
             </div>
           )}
@@ -554,9 +554,9 @@ export default function Home() {
                       <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Tipe</p>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                         {[
-                          { id: 'variable', label: 'Pengeluaran' },
-                          { id: 'income', label: 'Pemasukan' },
-                          { id: 'saving', label: 'Tabungan' },
+                          { id: 'variable', label: '💸 Pengeluaran' },
+                          { id: 'income', label: '💰 Pemasukan' },
+                          { id: 'saving', label: '🏦 Tabungan' },
                         ].map(t => (
                           <button
                             key={t.id}

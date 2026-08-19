@@ -4,7 +4,7 @@ import { KOLOM, keJson } from '../../../lib/jobs'
 
 const KOLOM_CSV = [
   'perusahaan', 'lokasi', 'jabatan', 'jenis', 'tempat',
-  'status', 'tanggalApply', 'referensi', 'url', 'gaji', 'catatan',
+  'status', 'tanggalApply', 'deadline', 'referensi', 'url', 'gaji', 'catatan',
 ]
 
 async function handler(req, res) {

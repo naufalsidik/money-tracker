@@ -9,7 +9,7 @@ const DIRESPONS = ['Screening', 'Interview', 'Offer', 'Rejected']
 const SKALA_MIN = 21
 
 const KOSONG = {
-  perusahaan: '', jabatan: '', lokasi: '', tanggalApply: '',
+  perusahaan: '', jabatan: '', lokasi: '', tanggalApply: '', deadline: '',
   jenis: 'Tetap', tempat: 'WFO', status: 'Applied',
   referensi: '', url: '', gaji: '', catatan: '',
 }
@@ -35,24 +35,58 @@ async function api(path, opsi) {
   return r.json()
 }
 
-// Warna dan label garis tunggu. Status yang sudah selesai tidak lagi "menunggu",
-// jadi diperlakukan terpisah dari yang masih berjalan.
+// Sisa hari menuju deadline. Negatif berarti sudah lewat.
+function sisaHari(d) {
+  const h = hariSejak(d)
+  return h === null ? null : -h
+}
+
+// Garis tunggu punya dua arti tergantung status.
+//
+// Lamaran yang belum dikirim (Progress) diukur terhadap DEADLINE: barnya
+// terisi seiring batas waktu mendekat, karena yang mendesak adalah
+// mendaftar, bukan menunggu.
+//
+// Lamaran yang sudah dikirim diukur terhadap LAMA MENUNGGU seperti
+// sebelumnya, karena deadline pendaftarannya sudah tidak relevan.
 function jalur(a, skala) {
   const h = hariSejak(a.tanggalApply)
   const S = a.status
-  if (h === null) return { pct: 0, warna: 'var(--w-mati)', kiri: 'tanggal kosong', kanan: '', strip: false }
-
-  const pct = Math.min(100, Math.max(5, (h / skala) * 100))
+  const sisa = a.deadline ? sisaHari(a.deadline) : null
 
   if (S === 'Progress') {
+    if (sisa === null) {
+      if (h === null) return { pct: 0, warna: 'var(--w-mati)', kiri: 'tanggal kosong', kanan: '', strip: false }
+      return {
+        pct: Math.min(100, Math.max(5, (h / skala) * 100)),
+        warna: 'var(--st-Progress)', strip: true,
+        kiri: h === 0 ? 'dicatat hari ini' : `dicatat ${h} hari lalu`,
+        kanan: 'belum dikirim',
+      }
+    }
+    if (sisa < 0) {
+      return {
+        pct: 100, warna: 'var(--w-cold)', strip: false,
+        kiri: `lewat ${Math.abs(sisa)} hari`, kanan: 'deadline terlewat',
+      }
+    }
+    // Jendela 30 hari: makin dekat deadline, makin penuh barnya.
+    const pct = Math.min(100, Math.max(6, ((30 - Math.min(sisa, 30)) / 30) * 100))
+    const warna = sisa <= 3 ? 'var(--w-cold)' : sisa <= 7 ? 'var(--w-hot)'
+      : sisa <= 14 ? 'var(--w-warm)' : 'var(--w-calm)'
+    const kanan = sisa <= 3 ? 'daftar hari ini' : sisa <= 7 ? 'segera daftar' : 'belum dikirim'
     return {
-      pct, warna: 'var(--s-Progress)', strip: true,
-      kiri: h === 0 ? 'dicatat hari ini' : `dicatat ${h} hari lalu`,
-      kanan: 'belum dikirim',
+      pct, warna, strip: true,
+      kiri: sisa === 0 ? 'deadline hari ini' : `sisa ${sisa} hari`,
+      kanan,
     }
   }
+
+  if (h === null) return { pct: 0, warna: 'var(--w-mati)', kiri: 'tanggal kosong', kanan: '', strip: false }
+  const pct = Math.min(100, Math.max(5, (h / skala) * 100))
+
   if (S === 'Offer') {
-    return { pct: 100, warna: 'var(--s-Offer)', kiri: fmt(a.tanggalApply), kanan: 'tawaran masuk', strip: false }
+    return { pct: 100, warna: 'var(--st-Offer)', kiri: fmt(a.tanggalApply), kanan: 'tawaran masuk', strip: false }
   }
   if (S === 'Rejected' || S === 'Ghosted') {
     return {
@@ -67,8 +101,22 @@ function jalur(a, skala) {
   return { pct, warna, kiri: h === 0 ? 'dilamar hari ini' : `${h} hari`, kanan, strip: false }
 }
 
-const perluAksi = a =>
-  a.status === 'Progress' || (!SELESAI.includes(a.status) && (hariSejak(a.tanggalApply) ?? 0) >= 15)
+// Deadline yang tinggal seminggu naik jadi "perlu aksi" meski baru dicatat.
+function labelSisa(d) {
+  const s = sisaHari(d)
+  if (s === null) return '—'
+  if (s < 0) return `lewat ${Math.abs(s)} hari`
+  if (s === 0) return 'hari ini'
+  return `sisa ${s} hari`
+}
+
+const perluAksi = a => {
+  if (SELESAI.includes(a.status)) return false
+  if (a.status === 'Progress') return true
+  const sisa = a.deadline ? sisaHari(a.deadline) : null
+  if (sisa !== null && sisa >= 0 && sisa <= 7) return true
+  return (hariSejak(a.tanggalApply) ?? 0) >= 15
+}
 
 const IkonUbah = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -205,12 +253,12 @@ export default function Jobs() {
   const ubahDraf = (k, v) => setDraf(d => ({ ...d, [k]: v }))
 
   return (
-    <Shell title="Papan Tunggu — Lamaran Kerja">
+    <Shell title="Job Tracker">
       <div className="papan">
         <div className="topbar">
           <div className="topbar-in">
             <div>
-              <h1>Papan Tunggu</h1>
+              <h1>Job Tracker</h1>
               <div className="tagline">
                 {semua.length
                   ? <>{semua.length} lamaran · {aktif} masih berjalan{aksi ? <> · <b>{aksi} perlu ditindaklanjuti</b></> : null}</>
@@ -218,6 +266,10 @@ export default function Jobs() {
               </div>
             </div>
             <div className="pipe">
+              <div className="pipe-head">
+                <span>Pipeline</span>
+                <span>{semua.length ? `respon ${Math.round((dijawab / semua.length) * 100)}%` : 'belum ada data'}</span>
+              </div>
               <div className="pipe-bar">
                 {segmen.map(([nama, n, warna]) => (
                   <span key={nama} style={{ width: `${(n / total) * 100}%`, background: warna }} title={`${n} ${nama}`} />
@@ -227,9 +279,6 @@ export default function Jobs() {
                 {segmen.map(([nama, n, warna]) => (
                   <i key={nama}><span className="dot" style={{ background: warna }} />{n} {nama}</i>
                 ))}
-                <span className="rate">
-                  {semua.length ? `respon ${Math.round((dijawab / semua.length) * 100)}%` : 'belum ada data'}
-                </span>
               </div>
             </div>
           </div>
@@ -276,7 +325,7 @@ export default function Jobs() {
               const j = jalur(a, skala)
               const buka = terbuka.has(a.id)
               return (
-                <div key={a.id} className={'row' + (buka ? ' open' : '')} style={{ '--rail': `var(--s-${a.status})` }}>
+                <div key={a.id} className={'row' + (buka ? ' open' : '')} style={{ '--rail': `var(--st-${a.status})` }}>
                   <div className="row-main grid">
                     <div className="idx">{String(i + 1).padStart(2, '0')}</div>
 
@@ -304,7 +353,7 @@ export default function Jobs() {
                       </div>
                     </div>
 
-                    <select className="status" value={a.status} style={{ color: `var(--s-${a.status})` }}
+                    <select className="status" value={a.status} style={{ color: `var(--st-${a.status})` }}
                       aria-label={'Status ' + a.perusahaan}
                       onClick={e => e.stopPropagation()}
                       onChange={e => gantiStatus(a, e.target.value)}>
@@ -320,7 +369,9 @@ export default function Jobs() {
                   </div>
 
                   <div className="detail">
-                    {[['Tanggal apply', fmt(a.tanggalApply)], ['Dapat dari', a.referensi || '—'],
+                    {[['Tanggal apply', fmt(a.tanggalApply)],
+                    ['Deadline', a.deadline ? `${fmt(a.deadline)} (${labelSisa(a.deadline)})` : '—'],
+                    ['Dapat dari', a.referensi || '—'],
                     ['Gaji', a.gaji || '—'], ['Catatan', a.catatan || '—']].map(([t, v]) => (
                       <div key={t}>
                         <div className="dt">{t}</div>
@@ -343,14 +394,14 @@ export default function Jobs() {
 
           {tampil.length === 0 && (
             <div className="empty">
-              <h3>Papan masih kosong</h3>
-              <p>Belum ada lamaran yang cocok. Tambah lewat tombol di atas.</p>
+              <h3>Belum ada lamaran</h3>
+              <p>Tambah lamaran pertama, atau biarkan Claude Cowork yang mengisi lewat API.</p>
             </div>
           )}
         </div>
 
         <footer>
-          Data tersimpan di Neon Postgres.
+          API otomasi: <code>POST /api/jobs</code> dengan header <code>x-api-key</code>
         </footer>
 
         <dialog ref={dialog} onClose={() => setDraf(null)}>
@@ -375,6 +426,13 @@ export default function Jobs() {
               <div className="f">
                 <label htmlFor="tanggalApply">Tanggal apply</label>
                 <input id="tanggalApply" type="date" value={draf.tanggalApply} onChange={e => ubahDraf('tanggalApply', e.target.value)} />
+              </div>
+              <div className="f">
+                <label htmlFor="deadline">Deadline pendaftaran</label>
+                <input id="deadline" type="date" value={draf.deadline || ''}
+                  aria-describedby="deadline-bantu"
+                  onChange={e => ubahDraf('deadline', e.target.value)} />
+                <span className="bantu" id="deadline-bantu">Kosongkan bila tidak diumumkan</span>
               </div>
               <div className="f">
                 <label htmlFor="jenis">Jenis</label>
@@ -420,176 +478,223 @@ export default function Jobs() {
       </div>
 
       <style jsx global>{`
-        .papan{
-          --surface:#FFFFFF;
-          --surface-2:#F2F5F7;
-          --ink:#0D1520;
-          --ink-2:#3C4A56;
-          --muted:#75838E;
-          --line:#D6DDE2;
-
-          --s-Progress:#7A8894;
-          --s-Applied:#33489E;
-          --s-Screening:#6D3FB5;
-          --s-Interview:#B45A09;
-          --s-Offer:#0A6B52;
-          --s-Rejected:#9C2F2F;
-          --s-Ghosted:#9AA5AD;
-
-          --w-calm:#0A6B52;
-          --w-warm:#A8830B;
-          --w-hot:#B45A09;
-          --w-cold:#9C2F2F;
-          --w-mati:#C3CBD1;
-
-          --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif;
-          --body:'Instrument Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;
-          --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
-
-          background:#E7EBEE;color:var(--ink);
-          font-family:var(--body);font-size:15px;line-height:1.45;
-          min-height:calc(100vh - 44px);
-          -webkit-font-smoothing:antialiased;
+        /* Job Tracker memakai token bersama. Tidak ada lagi palet lokal:
+           satu-satunya sumber warna adalah styles/tokens.css, sehingga
+           halaman ini ikut berganti tema tanpa aturan tambahan. */
+        .papan {
+          font-family: var(--font-body);
+          font-size: var(--text-md);
+          line-height: var(--leading-normal);
+          color: var(--ink);
+          padding-bottom: var(--space-12);
         }
         .papan *{box-sizing:border-box;margin:0;padding:0}
-        .papan button,.papan input,.papan select,.papan textarea{font-family:inherit;font-size:inherit;color:inherit}
-        .papan :focus-visible{outline:2px solid #33489E;outline-offset:2px;border-radius:3px}
-        @media (prefers-reduced-motion:reduce){.papan *{transition:none!important;animation:none!important}}
+        .papan button,.papan input,.papan select,.papan textarea{font-family:inherit;color:inherit}
 
-        .papan .topbar{background:var(--ink);color:#E7EBEE;padding:18px 22px 17px}
-        .papan .topbar-in{max-width:1240px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:34px;flex-wrap:wrap}
-        .papan h1{
-          font-family:var(--display);
-          font-variation-settings:'wdth' 82,'opsz' 40;
-          font-weight:700;font-size:1.9rem;line-height:.98;letter-spacing:-.015em;
+        .papan .topbar{
+          background:var(--surface);
+          border-bottom:var(--border-width) solid var(--border);
+          padding:var(--space-5) var(--pad-section) var(--space-4);
         }
-        .papan .tagline{font-family:var(--mono);font-size:.7rem;color:#8C9AA6;margin-top:7px}
-        .papan .tagline b{color:#E9A23B;font-weight:500}
+        .papan .topbar-in{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--space-6) var(--space-8);flex-wrap:wrap}
+        .papan h1{
+          font-family:var(--font-display);
+          font-weight:800;font-size:var(--text-2xl);
+          line-height:var(--leading-tight);letter-spacing:var(--tracking-tight);
+          color:var(--ink);
+        }
+        .papan .tagline{font-size:var(--text-sm);color:var(--muted);margin-top:var(--space-2)}
+        .papan .tagline b{color:var(--warn);font-weight:500}
 
-        .papan .pipe{flex:1;min-width:250px;max-width:420px}
-        .papan .pipe-bar{height:9px;border-radius:5px;overflow:hidden;display:flex;background:#212C38}
-        .papan .pipe-bar span{display:block;transition:width .5s cubic-bezier(.22,.8,.3,1)}
-        .papan .pipe-legend{font-family:var(--mono);font-size:.63rem;color:#8C9AA6;margin-top:8px;display:flex;gap:13px;flex-wrap:wrap;align-items:center}
+        .papan .pipe{flex:0 1 340px;min-width:260px}
+        .papan .pipe-head{
+          display:flex;justify-content:space-between;align-items:baseline;
+          font-size:var(--text-2xs);letter-spacing:var(--tracking-label);
+          text-transform:uppercase;color:var(--muted);margin-bottom:var(--space-2);
+        }
+        .papan .pipe-bar{height:9px;border-radius:var(--radius-full);overflow:hidden;display:flex;background:var(--surface-2)}
+        .papan .pipe-bar span{display:block;transition:width var(--dur-slow) var(--ease)}
+        .papan .pipe-legend{
+          font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--muted);
+          margin-top:var(--space-2);display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:center;
+        }
         .papan .pipe-legend i{font-style:normal;display:inline-flex;align-items:center;gap:5px}
         .papan .pipe-legend .dot{width:7px;height:7px;border-radius:2px;display:inline-block;flex:none}
-        .papan .pipe-legend .rate{margin-left:auto;color:#5F6E7B}
 
-        .papan .controls{max-width:1240px;margin:0 auto;padding:14px 22px 0;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-        .papan .search{flex:1;min-width:180px;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:9px 12px}
-        .papan .search::placeholder{color:#9AA6B0}
-        .papan .chips{display:flex;gap:6px;flex-wrap:wrap}
-        .papan .chip{
-          background:transparent;border:1px solid var(--line);border-radius:7px;
-          padding:8px 12px;font-size:.8rem;font-weight:600;color:var(--ink-2);cursor:pointer;
-          transition:background .12s,border-color .12s,color .12s;
+        .papan .controls{
+          padding:var(--space-4) var(--pad-section) 0;
+          display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;
         }
-        .papan .chip:hover{background:var(--surface)}
-        .papan .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#FFF}
-        .papan .chip .c{font-family:var(--mono);font-size:.72rem;opacity:.6;margin-left:4px}
-        .papan select.sort{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:.8rem;font-weight:600;cursor:pointer}
+        .papan .search{flex:1;min-width:200px;width:auto;min-height:44px}
+        .papan .chips{display:flex;gap:var(--space-1);flex-wrap:wrap}
+        .papan .chip{
+          background:transparent;border:var(--border-width) solid var(--border);
+          border-radius:var(--radius-sm);min-height:44px;padding:0 var(--space-3);
+          font-size:var(--text-sm);font-weight:600;color:var(--ink-2);
+          transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+        }
+        .papan .chip:hover{background:var(--surface-2)}
+        .papan .chip[aria-pressed="true"]{background:var(--solid);border-color:var(--solid);color:var(--on-solid)}
+        .papan .chip .c{font-family:var(--font-mono);font-size:var(--text-xs);opacity:.65;margin-left:var(--space-1)}
+        .papan select.sort{width:auto;min-height:44px;font-size:var(--text-sm);font-weight:600;background:var(--surface)}
         .papan .btn{
-          background:var(--surface);border:1px solid var(--line);border-radius:7px;
-          padding:9px 14px;font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:none;
-          color:var(--ink);display:inline-flex;align-items:center;gap:6px;
+          background:var(--surface);border:var(--border-width) solid var(--border);
+          border-radius:var(--radius-sm);min-height:44px;padding:0 var(--space-4);
+          font-size:var(--text-sm);font-weight:600;text-decoration:none;color:var(--ink);
+          display:inline-flex;align-items:center;gap:var(--space-2);cursor:pointer;
         }
         .papan .btn:hover{background:var(--surface-2)}
-        .papan .btn-solid{background:var(--ink);border-color:var(--ink);color:#FFF}
-        .papan .btn-solid:hover{background:#1B2836}
+        .papan .btn-solid{background:var(--solid);border-color:var(--solid);color:var(--on-solid)}
+        .papan .btn-solid:hover{opacity:.88;background:var(--solid)}
 
         .papan .galat{
-          flex:1;background:#FDECEC;border:1px solid #E9B8B8;color:#9C2F2F;
-          border-radius:7px;padding:9px 12px;font-size:.85rem;
-          display:flex;justify-content:space-between;align-items:center;gap:10px;
+          flex:1;background:var(--surface);border:var(--border-width) solid var(--danger);
+          color:var(--danger);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);
+          font-size:var(--text-sm);display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);
         }
 
-        .papan .board{max-width:1240px;margin:0 auto;padding:16px 22px 60px}
+        .papan .board{padding:var(--space-4) var(--pad-section) 0}
+        /* Kolom lama menyisakan terlalu banyak ruang untuk garis tunggu
+           dan terlalu sedikit untuk nama perusahaan. Bobotnya dibalik. */
         .papan .grid{
           display:grid;
-          grid-template-columns:28px minmax(190px,1fr) 118px minmax(210px,1.4fr) 114px 58px;
-          gap:14px;align-items:center;
+          grid-template-columns:26px minmax(200px,1.7fr) 116px minmax(150px,1fr) 112px 54px;
+          gap:var(--space-3);align-items:center;
         }
-        .papan .colhead{padding:0 14px 7px;font-family:var(--mono);font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
-        .papan .list{display:flex;flex-direction:column;gap:5px}
+        .papan .colhead{
+          padding:0 var(--space-3) var(--space-2);
+          font-family:var(--font-mono);font-size:var(--text-2xs);
+          letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--muted);
+        }
+        .papan .list{display:flex;flex-direction:column;gap:var(--space-1)}
 
         .papan .row{
-          background:var(--surface);border:1px solid var(--line);border-radius:9px;
-          border-left:3px solid var(--rail,#7A8894);
-          transition:box-shadow .12s;
+          background:var(--surface);border:var(--border-width) solid var(--border);
+          border-radius:var(--radius-md);border-left:3px solid var(--rail,var(--muted));
+          transition:box-shadow var(--dur-fast) var(--ease);
         }
-        .papan .row:hover{box-shadow:0 1px 0 rgba(13,21,32,.09),0 4px 14px -8px rgba(13,21,32,.28)}
-        .papan .row.open{box-shadow:0 1px 0 rgba(13,21,32,.09),0 6px 20px -10px rgba(13,21,32,.34)}
-        .papan .row-main{padding:11px 14px}
-        .papan .idx{font-family:var(--mono);font-size:.72rem;color:#A6B1BA}
+        .papan .row:hover,.papan .row.open{box-shadow:var(--shadow-card)}
+        .papan .row-main{padding:var(--space-3)}
+        .papan .idx{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted)}
         .papan .who{text-align:left;background:none;border:none;padding:0;cursor:pointer;min-width:0}
-        .papan .co{font-family:var(--display);font-variation-settings:'wdth' 92,'opsz' 16;font-weight:700;font-size:1rem;letter-spacing:-.008em;line-height:1.2}
-        .papan .role{color:var(--muted);font-size:.82rem;line-height:1.3;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .papan .tag{
-          display:inline-block;font-family:var(--mono);font-size:.55rem;letter-spacing:.09em;
-          text-transform:uppercase;border:1px solid currentColor;border-radius:3px;
-          padding:0 4px;margin-left:6px;vertical-align:2px;color:#6D3FB5;font-weight:500;
+        .papan .co{
+          font-family:var(--font-display);font-weight:700;font-size:var(--text-md);
+          letter-spacing:var(--tracking-tight);line-height:1.2;color:var(--ink);
         }
-        .papan .meta{font-family:var(--mono);font-size:.7rem;color:var(--ink-2);line-height:1.5;min-width:0}
-        .papan .meta .dim{color:#9AA6B0}
+        .papan .role{
+          color:var(--muted);font-size:var(--text-sm);line-height:1.3;margin-top:1px;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+        }
+        .papan .tag{
+          display:inline-block;font-family:var(--font-mono);font-size:var(--text-2xs);
+          letter-spacing:.09em;text-transform:uppercase;
+          border:var(--border-width) solid currentColor;border-radius:3px;
+          padding:0 4px;margin-left:6px;vertical-align:2px;color:var(--st-Screening);font-weight:500;
+        }
+        .papan .meta{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--ink-2);line-height:1.5;min-width:0}
+        .papan .meta .dim{color:var(--muted)}
 
         .papan .wait{min-width:0}
-        .papan .track{height:6px;background:#E3E8EC;border-radius:3px;overflow:hidden}
-        .papan .fill{height:100%;border-radius:3px;width:0;transition:width .55s cubic-bezier(.22,.8,.3,1)}
-        .papan .fill.strip{background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.5) 0 3px,transparent 3px 7px)}
-        .papan .wait-lbl{font-family:var(--mono);font-size:.68rem;margin-top:5px;color:var(--ink-2);display:flex;justify-content:space-between;gap:10px}
+        .papan .track{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+        .papan .fill{height:100%;border-radius:3px;width:0;transition:width var(--dur-slow) var(--ease)}
+        .papan .fill.strip{background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.45) 0 3px,transparent 3px 7px)}
+        .papan .wait-lbl{
+          font-family:var(--font-mono);font-size:var(--text-xs);margin-top:5px;
+          color:var(--ink-2);display:flex;justify-content:space-between;gap:var(--space-2);
+        }
         .papan .wait-lbl .act{font-weight:700;text-align:right;flex:none}
 
         .papan select.status{
           appearance:none;-webkit-appearance:none;
-          font-family:var(--mono);font-weight:500;font-size:.66rem;letter-spacing:.09em;
-          text-transform:uppercase;text-align:center;text-align-last:center;
-          border:1.4px solid currentColor;border-radius:999px;background:transparent;
-          padding:5px 8px;cursor:pointer;width:100%;
+          font-family:var(--font-mono);font-weight:500;font-size:var(--text-2xs);
+          letter-spacing:.09em;text-transform:uppercase;text-align:center;text-align-last:center;
+          border:1.4px solid currentColor;border-radius:var(--radius-full);background:transparent;
+          padding:6px 8px;cursor:pointer;width:100%;min-height:0;
         }
         .papan .acts{display:flex;gap:2px;justify-content:flex-end}
         .papan .ico{
-          background:none;border:none;padding:5px;border-radius:6px;cursor:pointer;
-          color:#9AA6B0;display:inline-flex;align-items:center;justify-content:center;
+          background:none;border:none;padding:6px;border-radius:var(--radius-sm);cursor:pointer;
+          color:var(--muted);display:inline-flex;align-items:center;justify-content:center;
         }
         .papan .ico:hover{background:var(--surface-2);color:var(--ink)}
         .papan .ico svg{display:block}
 
-        .papan .detail{display:none;border-top:1px solid var(--line);padding:12px 14px 13px;background:var(--surface-2);border-radius:0 0 7px 7px}
-        .papan .row.open .detail{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 22px}
-        .papan .dt{font-family:var(--mono);font-size:.58rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-        .papan .dd{font-size:.86rem;word-break:break-word}
-        .papan .dd a{color:#33489E;font-weight:600}
+        .papan .detail{
+          display:none;border-top:var(--border-width) solid var(--border);
+          padding:var(--space-3);background:var(--surface-2);
+          border-radius:0 0 var(--radius-md) var(--radius-md);
+        }
+        .papan .row.open .detail{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-3) var(--space-6)}
+        .papan .dt{
+          font-family:var(--font-mono);font-size:var(--text-2xs);
+          letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--muted);margin-bottom:2px;
+        }
+        .papan .dd{font-size:var(--text-sm);word-break:break-word;color:var(--ink-2)}
+        .papan .dd a{color:var(--accent);font-weight:600}
 
-        .papan .empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:52px 24px;text-align:center;color:var(--muted)}
-        .papan .empty h3{font-family:var(--display);font-variation-settings:'wdth' 84;font-weight:700;font-size:1.15rem;color:var(--ink);margin-bottom:5px}
+        .papan .empty{
+          background:var(--surface);border:var(--border-width) dashed var(--border);
+          border-radius:var(--radius-md);padding:var(--space-12) var(--space-6);
+          text-align:center;color:var(--muted);
+        }
+        .papan .empty h3{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--ink);margin-bottom:var(--space-1)}
 
-        .papan dialog{border:none;border-radius:12px;background:var(--surface);width:min(580px,94vw);padding:0;box-shadow:0 24px 60px -16px rgba(13,21,32,.45);color:var(--ink)}
-        .papan dialog::backdrop{background:rgba(13,21,32,.5)}
-        .papan .mhead{background:var(--ink);color:#FFF;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0}
-        .papan .mhead h2{font-family:var(--display);font-variation-settings:'wdth' 84;font-weight:700;font-size:1.1rem}
-        .papan .mhead .ico{color:#9AA6B0}
-        .papan .mhead .ico:hover{background:#25313E;color:#FFF}
-        .papan form{padding:18px 20px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-        .papan .f{display:flex;flex-direction:column;gap:4px;min-width:0}
+        .papan dialog{
+          margin:auto;
+          border:var(--border-width) solid var(--border);border-radius:var(--radius-md);
+          background:var(--surface);width:min(580px,94vw);padding:0;
+          box-shadow:var(--shadow-pop);color:var(--ink);
+        }
+        .papan dialog::backdrop{background:rgba(11,22,32,.55)}
+        .papan .mhead{
+          background:var(--surface-2);color:var(--ink);
+          padding:var(--space-4) var(--space-5);
+          display:flex;justify-content:space-between;align-items:center;
+          border-bottom:var(--border-width) solid var(--border);
+          border-radius:var(--radius-md) var(--radius-md) 0 0;
+        }
+        .papan .mhead h2{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg)}
+        .papan form{padding:var(--space-5);display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+        .papan .f{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
         .papan .f.full{grid-column:1/-1}
-        .papan .f label{font-family:var(--mono);font-size:.58rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
-        .papan .f input,.papan .f select,.papan .f textarea{border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--surface-2);font-size:.9rem}
-        .papan .mfoot{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;margin-top:4px}
+        .papan .f label{
+          font-family:var(--font-mono);font-size:var(--text-2xs);
+          letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--muted);
+        }
+        .papan .bantu{font-size:var(--text-xs);color:var(--muted)}
+        .papan .mfoot{grid-column:1/-1;display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-1)}
 
-        .papan footer{max-width:1240px;margin:0 auto;padding:0 22px 34px;font-family:var(--mono);font-size:.66rem;color:var(--muted);line-height:1.8}
-        .papan footer code{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+        .papan footer{
+          padding:var(--space-5) var(--pad-section) 0;
+          font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--muted);
+        }
+        .papan footer code{
+          background:var(--surface);border:var(--border-width) solid var(--border);
+          border-radius:4px;padding:1px 5px;
+        }
 
-        @media (max-width:880px){
+        @media (max-width:900px){
+          .papan .topbar,.papan .controls,.papan .board,.papan footer{
+            padding-left:var(--space-4);padding-right:var(--space-4);
+          }
           .papan .colhead{display:none}
-          .papan .row-main{grid-template-columns:1fr auto;grid-template-areas:"who status" "meta meta" "wait wait" "acts acts";gap:9px;padding:12px 13px}
+          .papan .row-main{
+            grid-template-columns:1fr auto;
+            grid-template-areas:"who status" "meta meta" "wait wait" "acts acts";
+            gap:var(--space-2);
+          }
           .papan .idx{display:none}
           .papan .who{grid-area:who}
           .papan .meta{grid-area:meta}
           .papan .wait{grid-area:wait}
           .papan .row-main > select.status{grid-area:status;width:auto}
-          .papan .acts{grid-area:acts;justify-content:flex-start;border-top:1px solid var(--line);padding-top:7px;margin-top:2px}
+          .papan .acts{
+            grid-area:acts;justify-content:flex-start;
+            border-top:var(--border-width) solid var(--border);
+            padding-top:var(--space-2);margin-top:2px;
+          }
           .papan .role{white-space:normal}
           .papan form{grid-template-columns:1fr}
-          .papan h1{font-size:1.55rem}
           .papan .pipe{max-width:none}
         }
       `}</style>

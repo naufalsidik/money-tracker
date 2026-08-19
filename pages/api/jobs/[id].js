@@ -29,6 +29,7 @@ async function handler(req, res) {
           tempat        = ${d.tempat},
           status        = ${d.status},
           tanggal_apply = ${d.tanggalApply},
+          deadline      = ${d.deadline},
           referensi     = ${d.referensi},
           url           = ${d.url},
           gaji          = ${d.gaji},

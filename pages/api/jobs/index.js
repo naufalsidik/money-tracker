@@ -53,10 +53,10 @@ async function buat(req, res) {
       const baris = await sql`
         insert into job_applications
           (perusahaan, lokasi, jabatan, jenis, tempat, status,
-           tanggal_apply, referensi, url, gaji, catatan, sumber)
+           tanggal_apply, deadline, referensi, url, gaji, catatan, sumber)
         values
           (${d.perusahaan}, ${d.lokasi}, ${d.jabatan}, ${d.jenis}, ${d.tempat}, ${d.status},
-           ${d.tanggalApply}, ${d.referensi}, ${d.url}, ${d.gaji}, ${d.catatan}, ${d.sumber})
+           ${d.tanggalApply}, ${d.deadline}, ${d.referensi}, ${d.url}, ${d.gaji}, ${d.catatan}, ${d.sumber})
         returning ${KOLOM}
       `
       hasil.push(keJson(baris[0]))

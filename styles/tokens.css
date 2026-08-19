@@ -12,7 +12,10 @@
   /* ---- huruf ---- */
   --font-display: 'Raleway', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'Source Sans 3', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Tidak ada monospace. Angka diluruskan lewat tabular-nums pada .num,
+     bukan lewat huruf lebar-tetap. Alias ini dipertahankan supaya
+     referensi lama tidak putus. */
+  --font-mono: var(--font-body);
 
   /* Tangga ukuran. Isi 15px, bukan 16px, karena tabel ini padat;
      tapi tidak pernah di bawah 12px supaya tetap terbaca. */
@@ -56,7 +59,7 @@
   /* ---- tata letak ---- */
   --sidebar-w: 232px;
   --sidebar-w-collapsed: 60px;
-  --content-max: 1240px;
+  --content-max: 100%;
 
   /* ---- gerak ---- */
   --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
@@ -124,43 +127,43 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #101C28;
-  --surface: #1A2935;
-  --surface-2: #223341;
-  --border: #2C3F4F;
-  --border-strong: #3E5568;
+  --bg: #0C0D0F;
+  --surface: #16181B;
+  --surface-2: #1F2226;
+  --border: #2A2E33;
+  --border-strong: #3B4148;
 
-  --ink: #E6EDF3;
-  --ink-2: #A7BAC8;
-  --muted: #7E92A2;
+  --ink: #E9EAEC;
+  --ink-2: #B0B4B9;
+  --muted: #868C93;
 
   --accent: #3FC2CA;
   --accent-quiet: #2A9BA3;
-  --on-accent: #0B1620;
+  --on-accent: #0B0C0E;
 
   --warn: #E38A68;
   --danger: #F08585;
   --ok: #4FC79E;
 
   --solid: #3FC2CA;
-  --on-solid: #0B1620;
+  --on-solid: #0B0C0E;
 
-  --shadow-card: 0 1px 0 rgba(0, 0, 0, .3), 0 4px 14px -8px rgba(0, 0, 0, .6);
-  --shadow-pop: 0 20px 50px -14px rgba(0, 0, 0, .7);
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, .4), 0 4px 14px -8px rgba(0, 0, 0, .7);
+  --shadow-pop: 0 20px 50px -14px rgba(0, 0, 0, .8);
 
-  --st-Progress:  #93A6B4;
+  --st-Progress:  #9AA1A8;
   --st-Applied:   #7C93E8;
   --st-Screening: #B08CF0;
   --st-Interview: #E9A05A;
   --st-Offer:     #4FC79E;
   --st-Rejected:  #F08585;
-  --st-Ghosted:   #8A99A6;
+  --st-Ghosted:   #8D949B;
 
   --w-calm: #4FC79E;
   --w-warm: #D9B45C;
   --w-hot:  #E9A05A;
   --w-cold: #F08585;
-  --w-mati: #3E5568;
+  --w-mati: #3B4148;
 
   --money-in: #4FC79E;
   --money-out: #F08585;
@@ -187,7 +190,6 @@ body {
 /* Angka harus sejajar per kolom. Tanpa ini nominal rupiah
    bergoyang saat nilainya berubah. */
 .num, .mono {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }

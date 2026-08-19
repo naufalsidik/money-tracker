@@ -4,10 +4,6 @@ import {
   LineChart, Line, CartesianGrid, Legend
 } from 'recharts'
 import Shell from '../../components/Shell'
-import {
-  IkonGrafik, IkonTambah, IkonDaftar,
-  IkonMata, IkonMataTutup, IkonLembarBaru,
-} from '../../components/icons'
 import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../../lib/constants'
 
 const FIXED_ITEMS = ['Kosan', 'Internet', 'iCloud', 'Claude', 'Apple Music']
@@ -46,10 +42,10 @@ function getNextMonthName(current) {
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '10px 14px' }}>
-      <p style={{ color: 'var(--muted)', marginBottom: 4, fontSize: 'var(--text-xs)' }}>{label}</p>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
+      <p style={{ color: 'var(--muted)', marginBottom: 4, fontSize: 12 }}>{label}</p>
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, fontSize: 'var(--text-sm)' }}>{p.name}: {formatRp(p.value)}</p>
+        <p key={i} style={{ color: p.color, fontSize: 13 }}>{p.name}: {formatRp(p.value)}</p>
       ))}
     </div>
   )
@@ -314,65 +310,48 @@ export default function Home() {
   return (
     <Shell title="Money Tracker">
         {/* Header */}
-<header style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <div style={{
-            padding: 'var(--space-5) var(--pad-section) var(--space-4)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-            gap: 'var(--space-6) var(--space-8)', flexWrap: 'wrap',
-          }}>
-            <div>
-              <h1 style={{
-                fontFamily: 'var(--font-display)', fontWeight: 800,
-                fontSize: 'var(--text-2xl)', lineHeight: 'var(--leading-tight)',
-                letterSpacing: 'var(--tracking-tight)', color: 'var(--ink)',
-              }}>Money Tracker</h1>
-              {data && (
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', marginTop: 'var(--space-2)' }}>
-                  {data.period}
-                </p>
-              )}
+        <header style={{ borderBottom: '1px solid var(--border)' }}>
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 24 }} aria-hidden="true">💰</span>
+              <div>
+                <h1 style={{ fontWeight: 700, fontSize: 17, lineHeight: 1.2, color: 'var(--ink)' }}>Money Tracker</h1>
+                {data && <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{data.period}</p>}
+              </div>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
                 onClick={toggleHide}
                 aria-label={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
-                aria-pressed={hideNominal}
                 title={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 44, height: 44, borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border)', background: 'var(--surface)',
-                  color: 'var(--ink-2)', cursor: 'pointer',
+                  fontSize: 14, padding: '7px 12px', borderRadius: 8,
+                  border: '1px solid var(--border)', background: 'transparent',
+                  color: 'var(--muted)', cursor: 'pointer',
+                  fontFamily: 'Sora, sans-serif', lineHeight: 1
                 }}
               >
-                {hideNominal ? <IkonMataTutup /> : <IkonMata />}
+                {hideNominal ? '🙈' : '👁️'}
               </button>
-
               {selectedSheet && !nextMonthExists && nextMonth && (
                 <button
                   onClick={handleInitSheet}
                   disabled={initLoading}
                   style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                    minHeight: 44, padding: '0 var(--space-4)',
-                    fontSize: 'var(--text-sm)', fontWeight: 600,
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border)', background: 'var(--surface)',
-                    color: 'var(--ink)', cursor: initLoading ? 'not-allowed' : 'pointer',
-                    opacity: initLoading ? 0.55 : 1, whiteSpace: 'nowrap',
+                    fontSize: 12, padding: '7px 14px', borderRadius: 8,
+                    border: '1px solid var(--accent)', background: 'transparent',
+                    color: 'var(--accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                    whiteSpace: 'nowrap', fontFamily: 'Sora, sans-serif'
                   }}
                 >
-                  <IkonLembarBaru />
-                  {initLoading ? 'Membuat…' : `Buat Sheet ${nextMonth}`}
+                  {initLoading ? '⏳' : '✨'} Buat Sheet {nextMonth}
                 </button>
               )}
-
               <select
                 aria-label="Pilih bulan"
                 style={{
-                  width: 'auto', minHeight: 44, background: 'var(--surface)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600,
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8,
+                  color: 'var(--ink)', padding: '7px 12px', fontSize: 13, outline: 'none'
                 }}
                 value={selectedSheet}
                 onChange={e => { setSelectedSheet(e.target.value); fetchData(e.target.value) }}
@@ -381,26 +360,16 @@ export default function Home() {
               </select>
             </div>
           </div>
-
           {initMsg && (
-            <div style={{
-              padding: 'var(--space-2) var(--pad-section)',
-              fontSize: 'var(--text-sm)', color: 'var(--money-in)',
-              borderTop: '1px solid var(--border)',
-            }}>
+            <div style={{ textAlign: 'center', padding: '6px', fontSize: 12, background: 'var(--surface)', color: 'var(--money-in)' }}>
               {initMsg}
             </div>
           )}
-
-          {/* Tab tetap bergaris bawah, bukan chip. Tab berpindah tampilan,
-              chip di Job Tracker menyaring daftar yang sama — fungsinya beda,
-              jadi bentuknya sengaja tidak disamakan. Yang diseragamkan hanya
-              tinggi, warna, dan ukuran hurufnya. */}
-          <div style={{ padding: '0 var(--pad-section)', display: 'flex', gap: 'var(--space-6)' }} role="tablist">
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px', display: 'flex', gap: 24 }} role="tablist">
             {[
-              { id: 'dashboard', label: 'Dashboard', Icon: IkonGrafik },
-              { id: 'add', label: 'Tambah', Icon: IkonTambah },
-              { id: 'transactions', label: 'Transaksi', Icon: IkonDaftar },
+              { id: 'dashboard', label: '📊 Dashboard' },
+              { id: 'add', label: '➕ Tambah' },
+              { id: 'transactions', label: '📋 Transaksi' },
             ].map(t => (
               <button
                 key={t.id}
@@ -408,23 +377,20 @@ export default function Home() {
                 aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                  minHeight: 44, padding: '0 2px',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
+                  padding: '12px 0', fontSize: 13, fontWeight: 500, cursor: 'pointer',
                   background: 'none', border: 'none',
                   borderBottom: tab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
                   color: tab === t.id ? 'var(--accent)' : 'var(--muted)',
-                  transition: 'color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)',
+                  transition: 'all 0.15s', fontFamily: 'Sora, sans-serif'
                 }}
               >
-                <t.Icon width={17} height={17} />
                 {t.label}
               </button>
             ))}
           </div>
         </header>
 
-        <main style={{ padding: 'var(--space-6) var(--pad-section)' }}>
+        <main style={{ maxWidth: 960, margin: '0 auto', padding: '24px 20px' }}>
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
               <div className="spinner"></div>
@@ -433,7 +399,7 @@ export default function Home() {
 
           {!loading && !data && (
             <div style={{ textAlign: 'center', paddingTop: 80, color: 'var(--muted)' }}>
-              
+              <p style={{ fontSize: 32, marginBottom: 12 }}>📭</p>
               <p>Tidak ada data ditemukan. Pastikan nama sheet sesuai dengan bulan dalam bahasa Indonesia.</p>
             </div>
           )}
@@ -450,38 +416,25 @@ export default function Home() {
                       { label: 'Sisa', value: showRp(selisih), color: selisih >= 0 ? 'var(--money-in)' : 'var(--money-out)', sub: `Setelah tabungan ${showRp(totalSaving)}` },
                       { label: 'Transaksi', value: data.transactions.length, color: 'var(--ink)' },
                     ].map((card, i) => (
-                      <div key={i} className="card" style={{ padding: 'var(--pad-card)' }}>
-                        <p style={{
-                          fontSize: 'var(--text-2xs)', color: 'var(--muted)',
-                          marginBottom: 'var(--space-1)', textTransform: 'uppercase',
-                          letterSpacing: 'var(--tracking-label)',
-                        }}>{card.label}</p>
-                        <p className="num" style={{
-                          fontSize: 'var(--text-2xl)', fontWeight: 500, color: card.color,
-                          lineHeight: 'var(--leading-tight)', letterSpacing: 'var(--tracking-tight)',
-                        }}>{card.value}</p>
-                        {card.sub && (
-                          <p style={{
-                            fontSize: 'var(--text-xs)', color: 'var(--muted)',
-                            marginTop: 'var(--space-3)', paddingTop: 'var(--space-3)',
-                            borderTop: '1px solid var(--border)',
-                          }}>{card.sub}</p>
-                        )}
+                      <div key={i} className="card" style={{ padding: 18 }}>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.label}</p>
+                        <p style={{ fontSize: 20, fontWeight: 600, color: card.color }}>{card.value}</p>
+                        {card.sub && <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, fontFamily: 'JetBrains Mono, monospace' }}>{card.sub}</p>}
                       </div>
                     ))}
                   </div>
 
                   {categoryData.length > 0 && (
                     <div className="card" style={{ padding: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 16 }}>Breakdown Pengeluaran (Variable)</p>
+                      <p style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Breakdown Pengeluaran (Variable)</p>
                       <ResponsiveContainer width="100%" height={280}>
-                        <BarChart data={categoryData} layout="vertical" margin={{ left: 0, right: 96, top: 4, bottom: 4 }}>
+                        <BarChart data={categoryData} layout="vertical" margin={{ left: 16, right: 24, top: 4, bottom: 4 }}>
                           <XAxis type="number" hide />
-                          <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 'var(--text-xs)', fill: 'var(--muted)' }} />
+                          <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12, fill: 'var(--muted)' }} />
                           <Tooltip content={<CustomTooltip />} />
                           <Bar dataKey="value" radius={[0, 4, 4, 0]}
                             fill="var(--money-plan)"
-                            label={{ position: 'right', fontSize: 'var(--text-2xs)', fill: 'var(--muted)', formatter: v => showRp(v) }}
+                            label={{ position: 'right', fontSize: 11, fill: 'var(--muted)', formatter: v => showRp(v) }}
                           />
                         </BarChart>
                       </ResponsiveContainer>
@@ -490,13 +443,13 @@ export default function Home() {
 
                   {data.fixedCost && data.fixedCost.some(f => f.amount > 0) && (
                     <div className="card" style={{ padding: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 12 }}>Fixed Cost</p>
+                      <p style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Fixed Cost</p>
                       {data.fixedCost.map((f, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-2) 0', borderBottom: i < data.fixedCost.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink)' }}>{f.item}</span>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < data.fixedCost.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                          <span style={{ fontSize: 13, color: 'var(--ink)' }}>{f.item}</span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', fontFamily: 'var(--font-body)' }}>{f.percentage}</span>
-                            <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-body)', color: f.amount > 0 ? 'var(--money-out)' : 'var(--muted)', minWidth: 100, textAlign: 'right' }}>{showRp(f.amount)}</span>
+                            <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'JetBrains Mono, monospace' }}>{f.percentage}</span>
+                            <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: f.amount > 0 ? 'var(--money-out)' : 'var(--muted)', minWidth: 100, textAlign: 'right' }}>{showRp(f.amount)}</span>
                           </div>
                         </div>
                       ))}
@@ -505,14 +458,14 @@ export default function Home() {
 
                   {rekapData.length > 0 && (
                     <div className="card" style={{ padding: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 16 }}>Pengeluaran Harian vs Budget</p>
+                      <p style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Pengeluaran Harian vs Budget</p>
                       <ResponsiveContainer width="100%" height={220}>
                         <LineChart data={rekapData} margin={{ left: 0, right: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                          <XAxis dataKey="date" tick={{ fontSize: 'var(--text-2xs)', fill: 'var(--muted)' }} />
-                          <YAxis tick={{ fontSize: 'var(--text-2xs)', fill: 'var(--muted)' }} />
+                          <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
+                          <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} />
                           <Tooltip content={<CustomTooltip />} />
-                          <Legend wrapperStyle={{ fontSize: 'var(--text-xs)' }} />
+                          <Legend wrapperStyle={{ fontSize: 12 }} />
                           <Line type="monotone" dataKey="Pengeluaran" stroke="var(--money-out)" dot={false} strokeWidth={2} />
                           <Line type="monotone" dataKey="Budget" stroke="var(--accent)" dot={false} strokeWidth={1.5} strokeDasharray="5 5" />
                         </LineChart>
@@ -521,23 +474,23 @@ export default function Home() {
                   )}
 
                   <div className="card" style={{ padding: 20 }}>
-                    <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 16 }}>Transaksi Terbaru</p>
+                    <p style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Transaksi Terbaru</p>
                     {[...data.transactions].reverse().slice(0, 5).map((t, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', fontFamily: 'var(--font-body)', minWidth: 55 }}>{t.date}</span>
+                          <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'JetBrains Mono, monospace', minWidth: 55 }}>{t.date}</span>
                           <span style={{
-                            fontSize: 'var(--text-2xs)', padding: '2px var(--space-2)', borderRadius: 'var(--radius-full)', fontWeight: 500,
+                            fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 500,
                             background: (CATEGORY_COLORS[t.category] || 'var(--money-plan)') + '22',
                             color: CATEGORY_COLORS[t.category] || 'var(--money-plan)'
                           }}>{t.category}</span>
-                          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink)' }}>{t.description}</span>
+                          <span style={{ fontSize: 13, color: 'var(--ink)' }}>{t.description}</span>
                         </div>
-                        <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-body)', color: 'var(--money-out)' }}>{showRp(t.amount)}</span>
+                        <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: 'var(--money-out)' }}>{showRp(t.amount)}</span>
                       </div>
                     ))}
                     {data.transactions.length === 0 && (
-                      <p style={{ color: 'var(--muted)', fontSize: 'var(--text-sm)', textAlign: 'center', padding: '20px 0' }}>Belum ada transaksi</p>
+                      <p style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Belum ada transaksi</p>
                     )}
                   </div>
                 </div>
@@ -547,16 +500,16 @@ export default function Home() {
               {tab === 'add' && (
                 <div style={{ maxWidth: 460, margin: '0 auto' }}>
                   <div className="card" style={{ padding: 24 }}>
-                    <h2 style={{ fontWeight: 600, fontSize: 'var(--text-lg)', marginBottom: 20, color: 'var(--ink)' }}>Tambah Data</h2>
+                    <h2 style={{ fontWeight: 600, fontSize: 17, marginBottom: 20, color: 'var(--ink)' }}>Tambah Data</h2>
 
                     {/* TIPE */}
                     <div style={{ marginBottom: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Tipe</p>
+                      <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tipe</p>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                         {[
-                          { id: 'variable', label: 'Pengeluaran' },
-                          { id: 'income', label: 'Pemasukan' },
-                          { id: 'saving', label: 'Tabungan' },
+                          { id: 'variable', label: '💸 Pengeluaran' },
+                          { id: 'income', label: '💰 Pemasukan' },
+                          { id: 'saving', label: '🏦 Tabungan' },
                         ].map(t => (
                           <button
                             key={t.id}
@@ -566,8 +519,8 @@ export default function Home() {
                               resetForm()
                             }}
                             style={{
-                              padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 500,
-                              cursor: 'pointer', border: 'none', fontFamily: 'var(--font-display)',
+                              padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                              cursor: 'pointer', border: 'none', fontFamily: 'Sora, sans-serif',
                               background: formType === t.id ? 'var(--accent)' : 'var(--border)',
                               color: formType === t.id ? 'var(--bg)' : 'var(--muted)',
                               transition: 'all 0.15s'
@@ -582,7 +535,7 @@ export default function Home() {
                     {/* Sub-pilihan hanya untuk Pengeluaran */}
                     {formType === 'variable' && (
                       <div style={{ marginBottom: 20 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Jenis</p>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jenis</p>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                           {[
                             { id: 'variable', label: 'Variable' },
@@ -592,8 +545,8 @@ export default function Home() {
                               key={k.id}
                               onClick={() => { setExpenseKind(k.id); resetForm() }}
                               style={{
-                                padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 500,
-                                cursor: 'pointer', border: 'none', fontFamily: 'var(--font-display)',
+                                padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                                cursor: 'pointer', border: 'none', fontFamily: 'Sora, sans-serif',
                                 background: expenseKind === k.id ? 'var(--money-plan)' : 'var(--border)',
                                 color: expenseKind === k.id ? 'var(--bg)' : 'var(--muted)',
                                 transition: 'all 0.15s'
@@ -609,7 +562,7 @@ export default function Home() {
                     {/* Tanggal — hanya untuk Variable dan Income */}
                     {((formType === 'variable' && expenseKind === 'variable') || formType === 'income') && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Tanggal (DD/MM/YYYY)</p>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tanggal (DD/MM/YYYY)</p>
                         <input type="text" placeholder="21/04/2026" value={formData.date}
                           onChange={e => setFormData({ ...formData, date: e.target.value })} />
                       </div>
@@ -618,7 +571,7 @@ export default function Home() {
                     {/* Deskripsi — untuk Variable dan Income */}
                     {((formType === 'variable' && expenseKind === 'variable') || formType === 'income') && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Deskripsi</p>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deskripsi</p>
                         <input type="text" placeholder="Warung Nasi, Gojek, Gaji..." value={formData.description}
                           onChange={e => setFormData({ ...formData, description: e.target.value })} maxLength={200} />
                       </div>
@@ -627,7 +580,7 @@ export default function Home() {
                     {/* Kategori — untuk Pengeluaran Variable */}
                     {formType === 'variable' && expenseKind === 'variable' && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Kategori</p>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kategori</p>
                         <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
                           <option value="">Pilih kategori...</option>
                           {VAR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -638,7 +591,7 @@ export default function Home() {
                     {/* Item — untuk Pengeluaran Fixed */}
                     {formType === 'variable' && expenseKind === 'fixed' && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Item</p>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item</p>
                         <select value={formData.item} onChange={e => setFormData({ ...formData, item: e.target.value })}>
                           <option value="">Pilih item...</option>
                           {FIXED_ITEMS.map(it => <option key={it} value={it}>{it}</option>)}
@@ -649,7 +602,7 @@ export default function Home() {
                     {/* Komponen — untuk Saving */}
                     {formType === 'saving' && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Komponen</p>
+                        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Komponen</p>
                         <input type="text" placeholder="Dana Darurat, Saham, Reksa Dana..." value={formData.component}
                           onChange={e => setFormData({ ...formData, component: e.target.value })} maxLength={200} />
                       </div>
@@ -657,7 +610,7 @@ export default function Home() {
 
                     {/* Jumlah — untuk semua */}
                     <div style={{ marginBottom: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Jumlah (Rp)</p>
+                      <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jumlah (Rp)</p>
                       <input type="number" placeholder="50000" value={formData.amount}
                         onChange={e => setFormData({ ...formData, amount: e.target.value })} min="0" max="1000000000" />
                     </div>
@@ -668,7 +621,7 @@ export default function Home() {
                     </button>
 
                     {submitMsg && (
-                      <p style={{ textAlign: 'center', marginTop: 12, fontSize: 'var(--text-sm)', color: submitMsg.includes('Berhasil') ? 'var(--money-in)' : 'var(--money-out)' }}>
+                      <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: submitMsg.includes('Berhasil') ? 'var(--money-in)' : 'var(--money-out)' }}>
                         {submitMsg}
                       </p>
                     )}
@@ -681,14 +634,14 @@ export default function Home() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Section: Pengeluaran Variable */}
                   <div className="card" style={{ overflow: 'auto' }}>
-                    <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-out)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Pengeluaran Variable</span>
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--money-out)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pengeluaran Variable</span>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--border)' }}>
                           {['Tanggal', 'Deskripsi', 'Kategori', 'Jumlah', ''].map((h, i) => (
-                            <th key={i} style={{ padding: 'var(--space-3) var(--space-4)', textAlign: h === 'Jumlah' ? 'right' : 'left', fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', fontWeight: 500 }}>{h}</th>
+                            <th key={i} style={{ padding: '12px 16px', textAlign: h === 'Jumlah' ? 'right' : 'left', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -696,52 +649,52 @@ export default function Home() {
                         {[...data.transactions].reverse().map((t, i) => (
                           editingRow !== null && editingRow.rowNum === t.rowNum && editingRow.type === 'variable' ? (
                             <tr key={i} style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                              <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                              <td style={{ padding: '8px 12px' }}>
                                 <input type="text" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })}
-                                  style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)', width: 90 }} />
+                                  style={{ padding: '6px 10px', fontSize: 12, width: 90 }} />
                               </td>
-                              <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                              <td style={{ padding: '8px 12px' }}>
                                 <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                                  style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)' }} maxLength={200} />
+                                  style={{ padding: '6px 10px', fontSize: 12 }} maxLength={200} />
                               </td>
-                              <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                              <td style={{ padding: '8px 12px' }}>
                                 <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}
-                                  style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)' }}>
+                                  style={{ padding: '6px 10px', fontSize: 12 }}>
                                   {VAR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                               </td>
-                              <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                              <td style={{ padding: '8px 12px' }}>
                                 <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
-                                  style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)', textAlign: 'right', width: 100 }} />
+                                  style={{ padding: '6px 10px', fontSize: 12, textAlign: 'right', width: 100 }} />
                               </td>
-                              <td style={{ padding: 'var(--space-2) var(--space-3)', whiteSpace: 'nowrap' }}>
+                              <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                                 <button onClick={() => handleSaveEdit('variable')} disabled={editSaving}
-                                  style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--money-in)', color: 'var(--bg)', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
+                                  style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: 'none', background: 'var(--money-in)', color: 'var(--bg)', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
                                   {editSaving ? '...' : 'Simpan'}
                                 </button>
                                 <button onClick={() => setEditingRow(null)}
-                                  style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
+                                  style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
                                   Batal
                                 </button>
                               </td>
                             </tr>
                           ) : (
                             <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                              onMouseEnter={e => e.currentTarget.style.background = '#161b2280'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                              <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{t.date}</td>
-                              <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>{t.description}</td>
-                              <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                                <span style={{ fontSize: 'var(--text-2xs)', padding: '2px var(--space-2)', borderRadius: 'var(--radius-full)', fontWeight: 500, background: (CATEGORY_COLORS[t.category] || 'var(--money-plan)') + '22', color: CATEGORY_COLORS[t.category] || 'var(--money-plan)' }}>{t.category}</span>
+                              <td style={{ padding: '11px 16px', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--muted)' }}>{t.date}</td>
+                              <td style={{ padding: '11px 16px', color: 'var(--ink)' }}>{t.description}</td>
+                              <td style={{ padding: '11px 16px' }}>
+                                <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 500, background: (CATEGORY_COLORS[t.category] || 'var(--money-plan)') + '22', color: CATEGORY_COLORS[t.category] || 'var(--money-plan)' }}>{t.category}</span>
                               </td>
-                              <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--money-out)' }}>{formatRp(t.amount)}</td>
-                              <td style={{ padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>
+                              <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--money-out)' }}>{formatRp(t.amount)}</td>
+                              <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 <button onClick={() => { setEditingRow({ ...t, type: 'variable' }); setEditForm({ date: t.date, description: t.description, category: t.category, amount: t.amount }) }}
-                                  style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 6 }}>
+                                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 6 }}>
                                   Edit
                                 </button>
                                 <button onClick={() => handleDelete(t, 'variable')}
-                                  style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--danger)', background: 'transparent', color: 'var(--money-out)', cursor: 'pointer' }}>
+                                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #f8514940', background: 'transparent', color: 'var(--money-out)', cursor: 'pointer' }}>
                                   Hapus
                                 </button>
                               </td>
@@ -758,14 +711,14 @@ export default function Home() {
                   {/* Section: Fixed Cost — antara Variable dan Income */}
                   {data.fixedCost && data.fixedCost.length > 0 && (
                     <div className="card" style={{ overflow: 'auto' }}>
-                      <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--st-Screening)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Pengeluaran Tetap</span>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--st-Screening)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pengeluaran Tetap</span>
                       </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)' }}>
                             {['Item', 'Jumlah', '%', ''].map((h, i) => (
-                              <th key={i} style={{ padding: 'var(--space-3) var(--space-4)', textAlign: h === 'Jumlah' || h === '%' ? 'right' : 'left', fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', fontWeight: 500 }}>{h}</th>
+                              <th key={i} style={{ padding: '12px 16px', textAlign: h === 'Jumlah' || h === '%' ? 'right' : 'left', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -773,33 +726,33 @@ export default function Home() {
                           {data.fixedCost.map((f, i) => (
                             editingRow !== null && editingRow.rowNum === f.rowNum && editingRow.type === 'fixed' ? (
                               <tr key={i} style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>{f.item}</td>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right' }}>
+                                <td style={{ padding: '11px 16px', color: 'var(--ink)' }}>{f.item}</td>
+                                <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                                   <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
-                                    style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)', textAlign: 'right', width: 120 }} min="0" />
+                                    style={{ padding: '6px 10px', fontSize: 12, textAlign: 'right', width: 120 }} min="0" />
                                 </td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontFamily: 'var(--font-body)', fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{f.percentage}</td>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--muted)' }}>{f.percentage}</td>
+                                <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                                   <button onClick={() => handleSaveEdit('fixed')} disabled={editSaving}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--money-in)', color: 'var(--bg)', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: 'none', background: 'var(--money-in)', color: 'var(--bg)', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
                                     {editSaving ? '...' : 'Simpan'}
                                   </button>
                                   <button onClick={() => setEditingRow(null)}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
                                     Batal
                                   </button>
                                 </td>
                               </tr>
                             ) : (
                               <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                                onMouseEnter={e => e.currentTarget.style.background = '#161b2280'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>{f.item}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontFamily: 'var(--font-body)', color: f.amount > 0 ? 'var(--money-out)' : 'var(--muted)' }}>{formatRp(f.amount)}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontFamily: 'var(--font-body)', fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{f.percentage}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '11px 16px', color: 'var(--ink)' }}>{f.item}</td>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: f.amount > 0 ? 'var(--money-out)' : 'var(--muted)' }}>{formatRp(f.amount)}</td>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--muted)' }}>{f.percentage}</td>
+                                <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                   <button onClick={() => { setEditingRow({ ...f, type: 'fixed' }); setEditForm({ amount: f.amount }) }}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
                                     Edit
                                   </button>
                                 </td>
@@ -814,51 +767,51 @@ export default function Home() {
                   {/* Section: Pemasukan */}
                   {data.income.length > 0 && (
                     <div className="card" style={{ overflow: 'auto' }}>
-                      <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-in)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Pemasukan</span>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--money-in)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pemasukan</span>
                       </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <tbody>
                           {data.income.map((t, i) => (
                             editingRow !== null && editingRow.rowNum === t.rowNum && editingRow.type === 'income' ? (
                               <tr key={i} style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)', width: 100 }}>
+                                <td style={{ padding: '8px 12px', width: 100 }}>
                                   <input type="text" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })}
-                                    style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)', width: 90 }} />
+                                    style={{ padding: '6px 10px', fontSize: 12, width: 90 }} />
                                 </td>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                                <td style={{ padding: '8px 12px' }}>
                                   <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                                    style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)' }} maxLength={200} />
+                                    style={{ padding: '6px 10px', fontSize: 12 }} maxLength={200} />
                                 </td>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                                <td style={{ padding: '8px 12px' }}>
                                   <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
-                                    style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)', textAlign: 'right', width: 110 }} />
+                                    style={{ padding: '6px 10px', fontSize: 12, textAlign: 'right', width: 110 }} />
                                 </td>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                                   <button onClick={() => handleSaveEdit('income')} disabled={editSaving}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--money-in)', color: 'var(--bg)', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: 'none', background: 'var(--money-in)', color: 'var(--bg)', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
                                     {editSaving ? '...' : 'Simpan'}
                                   </button>
                                   <button onClick={() => setEditingRow(null)}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
                                     Batal
                                   </button>
                                 </td>
                               </tr>
                             ) : (
                               <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                                onMouseEnter={e => e.currentTarget.style.background = '#161b2280'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-2xs)', color: 'var(--muted)', width: 100 }}>{t.date}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>{t.description}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--money-in)' }}>{formatRp(t.amount)}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '11px 16px', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--muted)', width: 100 }}>{t.date}</td>
+                                <td style={{ padding: '11px 16px', color: 'var(--ink)' }}>{t.description}</td>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--money-in)' }}>{formatRp(t.amount)}</td>
+                                <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                   <button onClick={() => { setEditingRow({ ...t, type: 'income' }); setEditForm({ date: t.date, description: t.description, amount: t.amount }) }}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 6 }}>
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 6 }}>
                                     Edit
                                   </button>
                                   <button onClick={() => handleDelete(t, 'income')}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--danger)', background: 'transparent', color: 'var(--money-out)', cursor: 'pointer' }}>
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #f8514940', background: 'transparent', color: 'var(--money-out)', cursor: 'pointer' }}>
                                     Hapus
                                   </button>
                                 </td>
@@ -873,46 +826,46 @@ export default function Home() {
                   {/* Section: Saving */}
                   {data.saving && data.saving.length > 0 && (
                     <div className="card" style={{ overflow: 'auto' }}>
-                      <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-plan)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Tabungan / Investasi</span>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--money-plan)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tabungan / Investasi</span>
                       </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <tbody>
                           {data.saving.map((s, i) => (
                             editingRow !== null && editingRow.rowNum === s.rowNum && editingRow.type === 'saving' ? (
                               <tr key={i} style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                                <td style={{ padding: '8px 12px' }}>
                                   <input type="text" value={editForm.component} onChange={e => setEditForm({ ...editForm, component: e.target.value })}
-                                    style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)' }} maxLength={200} />
+                                    style={{ padding: '6px 10px', fontSize: 12 }} maxLength={200} />
                                 </td>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                                <td style={{ padding: '8px 12px' }}>
                                   <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
-                                    style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)', textAlign: 'right', width: 110 }} />
+                                    style={{ padding: '6px 10px', fontSize: 12, textAlign: 'right', width: 110 }} />
                                 </td>
-                                <td style={{ padding: 'var(--space-2) var(--space-3)', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                                   <button onClick={() => handleSaveEdit('saving')} disabled={editSaving}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--money-in)', color: 'var(--bg)', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: 'none', background: 'var(--money-in)', color: 'var(--bg)', cursor: 'pointer', marginRight: 6, fontWeight: 600 }}>
                                     {editSaving ? '...' : 'Simpan'}
                                   </button>
                                   <button onClick={() => setEditingRow(null)}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
+                                    style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>
                                     Batal
                                   </button>
                                 </td>
                               </tr>
                             ) : (
                               <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                                onMouseEnter={e => e.currentTarget.style.background = '#161b2280'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>{s.component}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--money-plan)' }}>{formatRp(s.amount)}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '11px 16px', color: 'var(--ink)' }}>{s.component}</td>
+                                <td style={{ padding: '11px 16px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--money-plan)' }}>{formatRp(s.amount)}</td>
+                                <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                   <button onClick={() => { setEditingRow({ ...s, type: 'saving' }); setEditForm({ component: s.component, amount: s.amount }) }}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 6 }}>
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 6 }}>
                                     Edit
                                   </button>
                                   <button onClick={() => handleDelete(s, 'saving')}
-                                    style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--danger)', background: 'transparent', color: 'var(--money-out)', cursor: 'pointer' }}>
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #f8514940', background: 'transparent', color: 'var(--money-out)', cursor: 'pointer' }}>
                                     Hapus
                                   </button>
                                 </td>

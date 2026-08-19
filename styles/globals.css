@@ -1,146 +1,105 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #0d1117;
-  color: #e6edf3;
-}
+/* Font dimuat di pages/_document.js, bukan lewat @import di sini.
+   @import memblokir render sampai berkasnya selesai diunduh. */
 
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: #0d1117;
-}
+/* ==========================================================================
+   Kelas warisan money tracker.
+   Nama kelasnya dipertahankan supaya pages/money/index.js tetap jalan,
+   tapi nilainya sekarang menunjuk token. Efeknya money tracker ikut
+   berganti tema meski isinya belum ditulis ulang.
+   ========================================================================== */
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: #21262d;
-  border-radius: 2px;
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
 }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
 .card {
-  background: #161b22;
-  border: 1px solid #21262d;
-  border-radius: 12px;
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
 }
 
+/* Tanpa !important. Aturan ini sudah menang atas preflight Tailwind
+   karena urutannya lebih akhir, dan komponen tetap bisa menimpanya
+   saat perlu — sebelumnya tidak bisa. */
 input, select, textarea {
-  background: #0d1117 !important;
-  border: 1px solid #21262d !important;
-  border-radius: 8px !important;
-  color: #e6edf3 !important;
-  padding: 10px 14px !important;
+  background: var(--surface-2);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  padding: 9px 12px;
   width: 100%;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-fast) var(--ease);
 }
-
-input:focus, select:focus {
-  border-color: #f0a500 !important;
-}
-
-select option {
-  background: #161b22;
-}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--muted); }
+select option { background: var(--surface); color: var(--ink); }
 
 .btn-primary {
-  background: #f0a500;
-  color: #0d1117;
+  background: var(--solid);
+  color: var(--on-solid);
   font-weight: 600;
-  border-radius: 8px;
+  border: var(--border-width) solid var(--solid);
+  border-radius: var(--radius-sm);
   padding: 10px 20px;
-  transition: opacity 0.15s;
+  min-height: 44px;
+  transition: opacity var(--dur-fast) var(--ease);
   cursor: pointer;
 }
-
-.btn-primary:hover {
-  opacity: 0.85;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.btn-primary:hover { opacity: .88; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 
 .btn-ghost {
   background: transparent;
-  color: #8b949e;
-  border: 1px solid #21262d;
-  border-radius: 8px;
+  color: var(--ink-2);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
   padding: 10px 20px;
-  transition: all 0.15s;
+  min-height: 44px;
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
   cursor: pointer;
 }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
-.btn-ghost:hover {
-  border-color: #f0a500;
-  color: #f0a500;
-}
-
-.tab-active {
-  color: #f0a500;
-  border-bottom: 2px solid #f0a500;
-}
-
-.tab-inactive {
-  color: #8b949e;
-  border-bottom: 2px solid transparent;
-}
+.tab-active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+.tab-inactive { color: var(--muted); border-bottom: 2px solid transparent; }
 
 .tag {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-weight: 500;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-.fade-in {
-  animation: fadeIn 0.3s ease forwards;
-}
+.fade-in { animation: fadeIn var(--dur-slow) var(--ease) forwards; }
 
 .spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #21262d;
-  border-top-color: #f0a500;
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin .7s linear infinite;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Markdown analysis styling */
-.analysis-markdown {
-  font-size: 14px;
-  line-height: 1.8;
-  color: #c9d1d9;
-}
-.analysis-markdown strong {
-  color: #f0a500;
-  font-weight: 600;
-}
-.analysis-markdown p {
-  margin-bottom: 12px;
-}
-.analysis-markdown ol, .analysis-markdown ul {
-  margin-left: 20px;
-  margin-bottom: 12px;
-}
-.analysis-markdown li {
-  margin-bottom: 4px;
-}
+.analysis-markdown { font-size: var(--text-sm); line-height: 1.8; color: var(--ink-2); }
+.analysis-markdown strong { color: var(--accent); font-weight: 600; }
+.analysis-markdown p { margin-bottom: var(--space-3); }
+.analysis-markdown ol, .analysis-markdown ul { margin-left: var(--space-5); margin-bottom: var(--space-3); }
+.analysis-markdown li { margin-bottom: var(--space-1); }
 .analysis-markdown h1, .analysis-markdown h2, .analysis-markdown h3 {
-  color: #e6edf3;
-  font-weight: 600;
-  margin-top: 16px;
-  margin-bottom: 8px;
+  color: var(--ink); font-weight: 600;
+  margin-top: var(--space-4); margin-bottom: var(--space-2);
 }

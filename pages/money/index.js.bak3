@@ -4,10 +4,6 @@ import {
   LineChart, Line, CartesianGrid, Legend
 } from 'recharts'
 import Shell from '../../components/Shell'
-import {
-  IkonGrafik, IkonTambah, IkonDaftar,
-  IkonMata, IkonMataTutup, IkonLembarBaru,
-} from '../../components/icons'
 import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../../lib/constants'
 
 const FIXED_ITEMS = ['Kosan', 'Internet', 'iCloud', 'Claude', 'Apple Music']
@@ -314,65 +310,48 @@ export default function Home() {
   return (
     <Shell title="Money Tracker">
         {/* Header */}
-<header style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <div style={{
-            padding: 'var(--space-5) var(--pad-section) var(--space-4)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-            gap: 'var(--space-6) var(--space-8)', flexWrap: 'wrap',
-          }}>
-            <div>
-              <h1 style={{
-                fontFamily: 'var(--font-display)', fontWeight: 800,
-                fontSize: 'var(--text-2xl)', lineHeight: 'var(--leading-tight)',
-                letterSpacing: 'var(--tracking-tight)', color: 'var(--ink)',
-              }}>Money Tracker</h1>
-              {data && (
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', marginTop: 'var(--space-2)' }}>
-                  {data.period}
-                </p>
-              )}
+        <header style={{ borderBottom: '1px solid var(--border)' }}>
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 'var(--text-xl)' }} aria-hidden="true">💰</span>
+              <div>
+                <h1 style={{ fontWeight: 700, fontSize: 'var(--text-lg)', lineHeight: 1.2, color: 'var(--ink)' }}>Money Tracker</h1>
+                {data && <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginTop: 2 }}>{data.period}</p>}
+              </div>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
                 onClick={toggleHide}
                 aria-label={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
-                aria-pressed={hideNominal}
                 title={hideNominal ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 44, height: 44, borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border)', background: 'var(--surface)',
-                  color: 'var(--ink-2)', cursor: 'pointer',
+                  fontSize: 'var(--text-sm)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)', background: 'transparent',
+                  color: 'var(--muted)', cursor: 'pointer',
+                  fontFamily: 'var(--font-display)', lineHeight: 1
                 }}
               >
-                {hideNominal ? <IkonMataTutup /> : <IkonMata />}
+                {hideNominal ? '🙈' : '👁️'}
               </button>
-
               {selectedSheet && !nextMonthExists && nextMonth && (
                 <button
                   onClick={handleInitSheet}
                   disabled={initLoading}
                   style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                    minHeight: 44, padding: '0 var(--space-4)',
-                    fontSize: 'var(--text-sm)', fontWeight: 600,
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border)', background: 'var(--surface)',
-                    color: 'var(--ink)', cursor: initLoading ? 'not-allowed' : 'pointer',
-                    opacity: initLoading ? 0.55 : 1, whiteSpace: 'nowrap',
+                    fontSize: 'var(--text-xs)', padding: 'var(--space-2) var(--space-4)', borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--accent)', background: 'transparent',
+                    color: 'var(--accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                    whiteSpace: 'nowrap', fontFamily: 'var(--font-display)'
                   }}
                 >
-                  <IkonLembarBaru />
-                  {initLoading ? 'Membuat…' : `Buat Sheet ${nextMonth}`}
+                  {initLoading ? '⏳' : '✨'} Buat Sheet {nextMonth}
                 </button>
               )}
-
               <select
                 aria-label="Pilih bulan"
                 style={{
-                  width: 'auto', minHeight: 44, background: 'var(--surface)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600,
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                  color: 'var(--ink)', padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-sm)', outline: 'none'
                 }}
                 value={selectedSheet}
                 onChange={e => { setSelectedSheet(e.target.value); fetchData(e.target.value) }}
@@ -381,26 +360,16 @@ export default function Home() {
               </select>
             </div>
           </div>
-
           {initMsg && (
-            <div style={{
-              padding: 'var(--space-2) var(--pad-section)',
-              fontSize: 'var(--text-sm)', color: 'var(--money-in)',
-              borderTop: '1px solid var(--border)',
-            }}>
+            <div style={{ textAlign: 'center', padding: 'var(--space-2)', fontSize: 'var(--text-xs)', background: 'var(--surface)', color: 'var(--money-in)' }}>
               {initMsg}
             </div>
           )}
-
-          {/* Tab tetap bergaris bawah, bukan chip. Tab berpindah tampilan,
-              chip di Job Tracker menyaring daftar yang sama — fungsinya beda,
-              jadi bentuknya sengaja tidak disamakan. Yang diseragamkan hanya
-              tinggi, warna, dan ukuran hurufnya. */}
-          <div style={{ padding: '0 var(--pad-section)', display: 'flex', gap: 'var(--space-6)' }} role="tablist">
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px', display: 'flex', gap: 24 }} role="tablist">
             {[
-              { id: 'dashboard', label: 'Dashboard', Icon: IkonGrafik },
-              { id: 'add', label: 'Tambah', Icon: IkonTambah },
-              { id: 'transactions', label: 'Transaksi', Icon: IkonDaftar },
+              { id: 'dashboard', label: '📊 Dashboard' },
+              { id: 'add', label: '➕ Tambah' },
+              { id: 'transactions', label: '📋 Transaksi' },
             ].map(t => (
               <button
                 key={t.id}
@@ -408,23 +377,20 @@ export default function Home() {
                 aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                  minHeight: 44, padding: '0 2px',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
+                  padding: '12px 0', fontSize: 'var(--text-sm)', fontWeight: 500, cursor: 'pointer',
                   background: 'none', border: 'none',
                   borderBottom: tab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
                   color: tab === t.id ? 'var(--accent)' : 'var(--muted)',
-                  transition: 'color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)',
+                  transition: 'all 0.15s', fontFamily: 'var(--font-display)'
                 }}
               >
-                <t.Icon width={17} height={17} />
                 {t.label}
               </button>
             ))}
           </div>
         </header>
 
-        <main style={{ padding: 'var(--space-6) var(--pad-section)' }}>
+        <main style={{ maxWidth: 960, margin: '0 auto', padding: '24px 20px' }}>
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
               <div className="spinner"></div>
@@ -433,7 +399,7 @@ export default function Home() {
 
           {!loading && !data && (
             <div style={{ textAlign: 'center', paddingTop: 80, color: 'var(--muted)' }}>
-              
+              <p style={{ fontSize: 'var(--text-2xl)', marginBottom: 12 }}>📭</p>
               <p>Tidak ada data ditemukan. Pastikan nama sheet sesuai dengan bulan dalam bahasa Indonesia.</p>
             </div>
           )}
@@ -450,32 +416,19 @@ export default function Home() {
                       { label: 'Sisa', value: showRp(selisih), color: selisih >= 0 ? 'var(--money-in)' : 'var(--money-out)', sub: `Setelah tabungan ${showRp(totalSaving)}` },
                       { label: 'Transaksi', value: data.transactions.length, color: 'var(--ink)' },
                     ].map((card, i) => (
-                      <div key={i} className="card" style={{ padding: 'var(--pad-card)' }}>
-                        <p style={{
-                          fontSize: 'var(--text-2xs)', color: 'var(--muted)',
-                          marginBottom: 'var(--space-1)', textTransform: 'uppercase',
-                          letterSpacing: 'var(--tracking-label)',
-                        }}>{card.label}</p>
-                        <p className="num" style={{
-                          fontSize: 'var(--text-2xl)', fontWeight: 500, color: card.color,
-                          lineHeight: 'var(--leading-tight)', letterSpacing: 'var(--tracking-tight)',
-                        }}>{card.value}</p>
-                        {card.sub && (
-                          <p style={{
-                            fontSize: 'var(--text-xs)', color: 'var(--muted)',
-                            marginTop: 'var(--space-3)', paddingTop: 'var(--space-3)',
-                            borderTop: '1px solid var(--border)',
-                          }}>{card.sub}</p>
-                        )}
+                      <div key={i} className="card" style={{ padding: 18 }}>
+                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.label}</p>
+                        <p style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: card.color }}>{card.value}</p>
+                        {card.sub && <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginTop: 4, fontFamily: 'var(--font-body)' }}>{card.sub}</p>}
                       </div>
                     ))}
                   </div>
 
                   {categoryData.length > 0 && (
                     <div className="card" style={{ padding: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 16 }}>Breakdown Pengeluaran (Variable)</p>
+                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Breakdown Pengeluaran (Variable)</p>
                       <ResponsiveContainer width="100%" height={280}>
-                        <BarChart data={categoryData} layout="vertical" margin={{ left: 0, right: 96, top: 4, bottom: 4 }}>
+                        <BarChart data={categoryData} layout="vertical" margin={{ left: 16, right: 24, top: 4, bottom: 4 }}>
                           <XAxis type="number" hide />
                           <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 'var(--text-xs)', fill: 'var(--muted)' }} />
                           <Tooltip content={<CustomTooltip />} />
@@ -490,7 +443,7 @@ export default function Home() {
 
                   {data.fixedCost && data.fixedCost.some(f => f.amount > 0) && (
                     <div className="card" style={{ padding: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 12 }}>Fixed Cost</p>
+                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Fixed Cost</p>
                       {data.fixedCost.map((f, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-2) 0', borderBottom: i < data.fixedCost.length - 1 ? '1px solid var(--border)' : 'none' }}>
                           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink)' }}>{f.item}</span>
@@ -505,7 +458,7 @@ export default function Home() {
 
                   {rekapData.length > 0 && (
                     <div className="card" style={{ padding: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 16 }}>Pengeluaran Harian vs Budget</p>
+                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Pengeluaran Harian vs Budget</p>
                       <ResponsiveContainer width="100%" height={220}>
                         <LineChart data={rekapData} margin={{ left: 0, right: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -521,7 +474,7 @@ export default function Home() {
                   )}
 
                   <div className="card" style={{ padding: 20 }}>
-                    <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 16 }}>Transaksi Terbaru</p>
+                    <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Transaksi Terbaru</p>
                     {[...data.transactions].reverse().slice(0, 5).map((t, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -551,12 +504,12 @@ export default function Home() {
 
                     {/* TIPE */}
                     <div style={{ marginBottom: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Tipe</p>
+                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tipe</p>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                         {[
-                          { id: 'variable', label: 'Pengeluaran' },
-                          { id: 'income', label: 'Pemasukan' },
-                          { id: 'saving', label: 'Tabungan' },
+                          { id: 'variable', label: '💸 Pengeluaran' },
+                          { id: 'income', label: '💰 Pemasukan' },
+                          { id: 'saving', label: '🏦 Tabungan' },
                         ].map(t => (
                           <button
                             key={t.id}
@@ -582,7 +535,7 @@ export default function Home() {
                     {/* Sub-pilihan hanya untuk Pengeluaran */}
                     {formType === 'variable' && (
                       <div style={{ marginBottom: 20 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Jenis</p>
+                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jenis</p>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                           {[
                             { id: 'variable', label: 'Variable' },
@@ -609,7 +562,7 @@ export default function Home() {
                     {/* Tanggal — hanya untuk Variable dan Income */}
                     {((formType === 'variable' && expenseKind === 'variable') || formType === 'income') && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Tanggal (DD/MM/YYYY)</p>
+                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tanggal (DD/MM/YYYY)</p>
                         <input type="text" placeholder="21/04/2026" value={formData.date}
                           onChange={e => setFormData({ ...formData, date: e.target.value })} />
                       </div>
@@ -618,7 +571,7 @@ export default function Home() {
                     {/* Deskripsi — untuk Variable dan Income */}
                     {((formType === 'variable' && expenseKind === 'variable') || formType === 'income') && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Deskripsi</p>
+                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deskripsi</p>
                         <input type="text" placeholder="Warung Nasi, Gojek, Gaji..." value={formData.description}
                           onChange={e => setFormData({ ...formData, description: e.target.value })} maxLength={200} />
                       </div>
@@ -627,7 +580,7 @@ export default function Home() {
                     {/* Kategori — untuk Pengeluaran Variable */}
                     {formType === 'variable' && expenseKind === 'variable' && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Kategori</p>
+                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kategori</p>
                         <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
                           <option value="">Pilih kategori...</option>
                           {VAR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -638,7 +591,7 @@ export default function Home() {
                     {/* Item — untuk Pengeluaran Fixed */}
                     {formType === 'variable' && expenseKind === 'fixed' && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Item</p>
+                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item</p>
                         <select value={formData.item} onChange={e => setFormData({ ...formData, item: e.target.value })}>
                           <option value="">Pilih item...</option>
                           {FIXED_ITEMS.map(it => <option key={it} value={it}>{it}</option>)}
@@ -649,7 +602,7 @@ export default function Home() {
                     {/* Komponen — untuk Saving */}
                     {formType === 'saving' && (
                       <div style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Komponen</p>
+                        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Komponen</p>
                         <input type="text" placeholder="Dana Darurat, Saham, Reksa Dana..." value={formData.component}
                           onChange={e => setFormData({ ...formData, component: e.target.value })} maxLength={200} />
                       </div>
@@ -657,7 +610,7 @@ export default function Home() {
 
                     {/* Jumlah — untuk semua */}
                     <div style={{ marginBottom: 20 }}>
-                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Jumlah (Rp)</p>
+                      <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jumlah (Rp)</p>
                       <input type="number" placeholder="50000" value={formData.amount}
                         onChange={e => setFormData({ ...formData, amount: e.target.value })} min="0" max="1000000000" />
                     </div>
@@ -682,13 +635,13 @@ export default function Home() {
                   {/* Section: Pengeluaran Variable */}
                   <div className="card" style={{ overflow: 'auto' }}>
                     <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-out)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Pengeluaran Variable</span>
+                      <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-out)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pengeluaran Variable</span>
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--border)' }}>
                           {['Tanggal', 'Deskripsi', 'Kategori', 'Jumlah', ''].map((h, i) => (
-                            <th key={i} style={{ padding: 'var(--space-3) var(--space-4)', textAlign: h === 'Jumlah' ? 'right' : 'left', fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', fontWeight: 500 }}>{h}</th>
+                            <th key={i} style={{ padding: 'var(--space-3) var(--space-4)', textAlign: h === 'Jumlah' ? 'right' : 'left', fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -759,13 +712,13 @@ export default function Home() {
                   {data.fixedCost && data.fixedCost.length > 0 && (
                     <div className="card" style={{ overflow: 'auto' }}>
                       <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--st-Screening)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Pengeluaran Tetap</span>
+                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--st-Screening)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pengeluaran Tetap</span>
                       </div>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)' }}>
                             {['Item', 'Jumlah', '%', ''].map((h, i) => (
-                              <th key={i} style={{ padding: 'var(--space-3) var(--space-4)', textAlign: h === 'Jumlah' || h === '%' ? 'right' : 'left', fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', fontWeight: 500 }}>{h}</th>
+                              <th key={i} style={{ padding: 'var(--space-3) var(--space-4)', textAlign: h === 'Jumlah' || h === '%' ? 'right' : 'left', fontSize: 'var(--text-2xs)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -815,7 +768,7 @@ export default function Home() {
                   {data.income.length > 0 && (
                     <div className="card" style={{ overflow: 'auto' }}>
                       <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-in)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Pemasukan</span>
+                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-in)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pemasukan</span>
                       </div>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                         <tbody>
@@ -874,7 +827,7 @@ export default function Home() {
                   {data.saving && data.saving.length > 0 && (
                     <div className="card" style={{ overflow: 'auto' }}>
                       <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-plan)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>Tabungan / Investasi</span>
+                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--money-plan)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tabungan / Investasi</span>
                       </div>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                         <tbody>
