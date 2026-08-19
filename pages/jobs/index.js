@@ -344,13 +344,13 @@ export default function Jobs() {
           {tampil.length === 0 && (
             <div className="empty">
               <h3>Papan masih kosong</h3>
-              <p>Tambah lamaran pertama, atau biarkan Claude Cowork yang mengisi lewat API.</p>
+              <p>Belum ada lamaran yang cocok. Tambah lewat tombol di atas.</p>
             </div>
           )}
         </div>
 
         <footer>
-          API otomasi: <code>POST /api/jobs</code> dengan header <code>x-api-key</code>
+          Data tersimpan di Neon Postgres.
         </footer>
 
         <dialog ref={dialog} onClose={() => setDraf(null)}>

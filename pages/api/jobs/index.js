@@ -1,5 +1,5 @@
 import { sql } from '../../../lib/db'
-import { withJobsAuth } from '../../../lib/jobs-auth'
+import { withAuth } from '../../../lib/auth'
 import { KOLOM, keJson, bersihkan, cariDuplikat } from '../../../lib/jobs'
 
 async function handler(req, res) {
@@ -68,4 +68,4 @@ async function buat(req, res) {
   }
 }
 
-export default withJobsAuth(handler)
+export default withAuth(handler)
