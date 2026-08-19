@@ -1,0 +1,219 @@
+/* ==========================================================================
+   Personal Tracker — design tokens
+   Satu-satunya tempat nilai warna, huruf, dan jarak boleh ditulis.
+   Komponen memakai var(--...), tidak pernah hex mentah.
+
+   Mode terang adalah acuan. Mode gelap diturunkan, bukan sekadar
+   dibalik: warna semantik punya pasangannya sendiri karena warna yang
+   kontras di latar krem menjadi tidak terbaca di latar navy.
+   ========================================================================== */
+
+:root {
+  /* ---- huruf ---- */
+  --font-display: 'Raleway', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Source Sans 3', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Tangga ukuran. Isi 15px, bukan 16px, karena tabel ini padat;
+     tapi tidak pernah di bawah 12px supaya tetap terbaca. */
+  --text-2xs: 0.6875rem;  /* 11px — hanya label mono huruf besar */
+  --text-xs:  0.75rem;    /* 12px */
+  --text-sm:  0.8125rem;  /* 13px */
+  --text-md:  0.9375rem;  /* 15px — isi */
+  --text-lg:  1.125rem;   /* 18px */
+  --text-xl:  1.5rem;     /* 24px */
+  --text-2xl: 1.9375rem;  /* 31px — judul halaman */
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+
+  --tracking-label: 0.11em;  /* label mono huruf besar */
+  --tracking-tight: -0.015em;
+
+  /* ---- jarak, ritme 4px ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --pad-card: var(--space-5);      /* 20px, bukan 8px */
+  --pad-section: var(--space-6);
+  --gap-grid: var(--space-3);
+
+  /* ---- bentuk ---- */
+  --radius-sm: 6px;    /* kontrol: tombol, input, chip */
+  --radius-md: 10px;   /* kartu, panel */
+  --radius-full: 999px;
+
+  --border-width: 1px;
+
+  /* ---- tata letak ---- */
+  --sidebar-w: 232px;
+  --sidebar-w-collapsed: 60px;
+  --content-max: 1240px;
+
+  /* ---- gerak ---- */
+  --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 450ms;
+}
+
+/* ==========================================================================
+   MODE TERANG — acuan
+   ========================================================================== */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #F2EFE8;
+  --surface: #FFFFFF;
+  --surface-2: #EAE6DD;
+  --border: #D8D3C7;
+  --border-strong: #BDB6A6;
+
+  --ink: #152A3D;
+  --ink-2: #44586A;
+  --muted: #5A6B7A;
+
+  --accent: #0C6E75;
+  --accent-quiet: #1AA0A8;   /* garis, isian, ikon — bukan teks kecil */
+  --on-accent: #FFFFFF;
+
+  --warn: #A8442A;
+  --danger: #932C2C;
+  --ok: #0A6B52;
+
+  --solid: #152A3D;
+  --on-solid: #FFFFFF;
+
+  --shadow-card: 0 1px 0 rgba(21, 42, 61, .05), 0 4px 14px -8px rgba(21, 42, 61, .22);
+  --shadow-pop: 0 20px 50px -14px rgba(21, 42, 61, .38);
+
+  /* status lamaran */
+  --st-Progress:  #576977;
+  --st-Applied:   #2E4192;
+  --st-Screening: #653AA8;
+  --st-Interview: #8F4A07;
+  --st-Offer:     #0A6B52;
+  --st-Rejected:  #932C2C;
+  --st-Ghosted:   #5E6A74;
+
+  /* suhu tunggu */
+  --w-calm: #0A6B52;
+  --w-warm: #8A6A08;
+  --w-hot:  #8F4A07;
+  --w-cold: #932C2C;
+  --w-mati: #B9B2A4;
+
+  /* uang */
+  --money-in: #0A6B52;
+  --money-out: #932C2C;
+  --money-plan: #0C6E75;
+}
+
+/* ==========================================================================
+   MODE GELAP — diturunkan, bukan dibalik
+   ========================================================================== */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #101C28;
+  --surface: #1A2935;
+  --surface-2: #223341;
+  --border: #2C3F4F;
+  --border-strong: #3E5568;
+
+  --ink: #E6EDF3;
+  --ink-2: #A7BAC8;
+  --muted: #7E92A2;
+
+  --accent: #3FC2CA;
+  --accent-quiet: #2A9BA3;
+  --on-accent: #0B1620;
+
+  --warn: #E38A68;
+  --danger: #F08585;
+  --ok: #4FC79E;
+
+  --solid: #3FC2CA;
+  --on-solid: #0B1620;
+
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, .3), 0 4px 14px -8px rgba(0, 0, 0, .6);
+  --shadow-pop: 0 20px 50px -14px rgba(0, 0, 0, .7);
+
+  --st-Progress:  #93A6B4;
+  --st-Applied:   #7C93E8;
+  --st-Screening: #B08CF0;
+  --st-Interview: #E9A05A;
+  --st-Offer:     #4FC79E;
+  --st-Rejected:  #F08585;
+  --st-Ghosted:   #8A99A6;
+
+  --w-calm: #4FC79E;
+  --w-warm: #D9B45C;
+  --w-hot:  #E9A05A;
+  --w-cold: #F08585;
+  --w-mati: #3E5568;
+
+  --money-in: #4FC79E;
+  --money-out: #F08585;
+  --money-plan: #3FC2CA;
+}
+
+/* ==========================================================================
+   Dasar
+   ========================================================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
+}
+
+/* Angka harus sejajar per kolom. Tanpa ini nominal rupiah
+   bergoyang saat nilainya berubah. */
+.num, .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+/* Fokus tidak boleh dihapus. 2px penuh, offset supaya tidak menempel. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+a { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

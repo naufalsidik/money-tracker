@@ -1,5 +1,5 @@
 import { sql } from '../../../lib/db'
-import { withJobsAuth } from '../../../lib/jobs-auth'
+import { withAuth } from '../../../lib/auth'
 import { KOLOM, keJson, bersihkan } from '../../../lib/jobs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -55,4 +55,4 @@ async function handler(req, res) {
   }
 }
 
-export default withJobsAuth(handler)
+export default withAuth(handler)
