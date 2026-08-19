@@ -133,7 +133,6 @@ async function handler(req, res) {
     // ==========================================================
     const allDates = getPeriodDates(month, year)
     const budget = totalIncome - totalFixed - totalSaving
-    const wajar = allDates.length > 0 ? Math.round(budget / allDates.length) : 0
 
     const spendByDate = new Map()
     transactions.forEach(t => {
@@ -147,8 +146,16 @@ async function handler(req, res) {
 
     let cumulative = 0
     const rekap = shownDates.map((iso, i) => {
+      // Jatah harian dihitung ulang tiap hari: sisa budget dibagi sisa hari
+      // termasuk hari ini. Dihitung SEBELUM belanja hari ini masuk, supaya
+      // angkanya adalah jatah saat Anda bangun pagi, bukan setelahnya.
+      const sisaHari = allDates.length - i
+      const budgetTersisa = budget - cumulative
+      const wajar = sisaHari > 0 ? Math.round(budgetTersisa / sisaHari) : 0
+
       const jumlah = spendByDate.get(iso) || 0
       cumulative += jumlah
+
       return {
         date: formatDateLabel(iso),
         jumlah,
