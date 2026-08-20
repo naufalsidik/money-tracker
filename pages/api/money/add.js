@@ -31,7 +31,13 @@ async function handler(req, res) {
   if (!isValidMonth(month)) {
     return res.status(400).json({ error: 'Nama periode tidak valid' })
   }
-
+  // Dompet opsional dan ikut di dalam `data`. Nilai yang bukan bilangan
+  // bulat positif dijadikan null, bukan ditolak — kehilangan penanda
+  // dompet lebih ringan daripada kehilangan catatan transaksinya.
+  const walletIdMentah = parseInt(data?.walletId, 10)
+  const walletId = Number.isInteger(walletIdMentah) && walletIdMentah > 0
+    ? walletIdMentah
+    : null
   let validationErrors = []
   if (type === 'variable') validationErrors = validateVariable(data)
   else if (type === 'fixed') validationErrors = validateFixed(data)
@@ -48,18 +54,18 @@ async function handler(req, res) {
       if (!iso) return res.status(400).json({ error: 'Format tanggal tidak valid' })
 
       await sql`
-        INSERT INTO variable_expenses (month, year, tanggal, description, category, amount)
+        INSERT INTO variable_expenses (month, year, tanggal, description, category, amount, wallet_id)
         VALUES (${month}, ${year}, ${iso}, ${data.description.trim()},
-                ${data.category}, ${Math.round(Number(data.amount))})
+                ${data.category}, ${Math.round(Number(data.amount))}, ${walletId})
       `
     } else if (type === 'income') {
       const iso = parseInputDate(data.date, month, year)
       if (!iso) return res.status(400).json({ error: 'Format tanggal tidak valid' })
 
       await sql`
-        INSERT INTO incomes (month, year, tanggal, description, amount)
+        INSERT INTO incomes (month, year, tanggal, description, amount, wallet_id)
         VALUES (${month}, ${year}, ${iso}, ${data.description.trim()},
-                ${Math.round(Number(data.amount))})
+                ${Math.round(Number(data.amount))}, ${walletId})
       `
     } else if (type === 'saving') {
       await sql`
@@ -91,10 +97,10 @@ async function handler(req, res) {
 
       // Upsert: kalau barisnya belum ada, buat. Kalau sudah ada, timpa nilainya.
       await sql`
-        INSERT INTO fixed_costs (month, year, item, amount)
-        VALUES (${month}, ${year}, ${data.item}, ${Math.round(Number(data.amount))})
+        INSERT INTO fixed_costs (month, year, item, amount, wallet_id)
+        VALUES (${month}, ${year}, ${data.item}, ${Math.round(Number(data.amount))}, ${walletId})
         ON CONFLICT (month, year, item)
-        DO UPDATE SET amount = EXCLUDED.amount
+        DO UPDATE SET amount = EXCLUDED.amount, wallet_id = EXCLUDED.wallet_id
       `
     }
 

@@ -4,10 +4,7 @@ import {
   LineChart, Line, CartesianGrid, Legend
 } from 'recharts'
 import Shell from '../../components/Shell'
-import {
-  IkonGrafik, IkonTambah, IkonDaftar,
-  IkonMata, IkonMataTutup, IkonLembarBaru,
-} from '../../components/icons'
+import { IkonMata, IkonMataTutup, IkonUnduh } from '../../components/icons'
 import { MONTHS_ID, VAR_CATEGORIES, CATEGORY_COLORS } from '../../lib/constants'
 import MoneyNav from '../../components/MoneyNav'
 import { useRouter } from 'next/router'
@@ -37,12 +34,6 @@ function getCurrentMonthName() {
   if (day >= 20) return MONTHS_ID[now.getMonth()]
   const prevIdx = now.getMonth() - 1
   return MONTHS_ID[prevIdx < 0 ? 11 : prevIdx]
-}
-
-function getNextMonthName(current) {
-  const idx = MONTHS_ID.indexOf(current)
-  if (idx === -1) return null
-  return MONTHS_ID[(idx + 1) % 12]
 }
 
 function CustomTooltip({ active, payload, label }) {
@@ -114,24 +105,24 @@ export default function Home() {
     amount: '',
     component: '',
     item: '',
+	walletId: '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [submitMsg, setSubmitMsg] = useState('')
-  const [initLoading, setInitLoading] = useState(false)
-  const [initMsg, setInitMsg] = useState('')
   const [editingRow, setEditingRow] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [editSaving, setEditSaving] = useState(false)
 
   function resetForm() {
-    setFormData({
+    setFormData(f => ({
       date: todayFormatted(),
       description: '',
       category: '',
       amount: '',
       component: '',
       item: '',
-    })
+      walletId: f.walletId,
+    }))
   }
 
   async function handleDelete(row, type) {
@@ -215,11 +206,11 @@ export default function Home() {
     // Siapkan payload sesuai tipe
     let payload = {}
     if (apiType === 'variable') {
-      payload = { date: formData.date, description: formData.description, category: formData.category, amount: formData.amount }
+      payload = { date: formData.date, description: formData.description, category: formData.category, amount: formData.amount, walletId: formData.walletId }
     } else if (apiType === 'fixed') {
-      payload = { item: formData.item, amount: formData.amount }
+      payload = { item: formData.item, amount: formData.amount, walletId: formData.walletId }
     } else if (apiType === 'income') {
-      payload = { date: formData.date, description: formData.description, amount: formData.amount }
+      payload = { date: formData.date, description: formData.description, amount: formData.amount, walletId: formData.walletId }
     } else if (apiType === 'saving') {
       payload = { component: formData.component, amount: formData.amount }
     }
@@ -288,35 +279,6 @@ export default function Home() {
     submitData(false)
   }
 
-  async function handleInitSheet() {
-    const nextMonth = getNextMonthName(selectedSheet)
-    if (!nextMonth) return
-    setInitLoading(true)
-    setInitMsg('')
-    try {
-      const res = await fetch('/api/money/init-sheet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newMonth: nextMonth, sourceMonth: selectedSheet }),
-      })
-      const json = await res.json()
-      if (res.ok) {
-        setInitMsg(json.message)
-        const sheets = await fetchSheets()
-        setAvailableSheets(sheets)
-        fetchData(nextMonth)
-      } else {
-        setInitMsg('Gagal: ' + json.error)
-      }
-    } catch {
-      setInitMsg('Error saat membuat sheet.')
-    }
-    setInitLoading(false)
-    setTimeout(() => setInitMsg(''), 5000)
-  }
-
-  const nextMonth = getNextMonthName(selectedSheet)
-  const nextMonthExists = availableSheets.includes(nextMonth)
   const categoryData = data
     ? Object.entries(data.summary?.categoryBreakdown || {})
         .sort((a, b) => b[1] - a[1])
@@ -369,23 +331,22 @@ export default function Home() {
                 {hideNominal ? <IkonMataTutup /> : <IkonMata />}
               </button>
 
-              {selectedSheet && !nextMonthExists && nextMonth && (
-                <button
-                  onClick={handleInitSheet}
-                  disabled={initLoading}
+              {selectedSheet && (
+                <a
+                  href={`/api/money/export.csv?sheet=${encodeURIComponent(selectedSheet)}`}
+                  download
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
                     minHeight: 44, padding: '0 var(--space-4)',
                     fontSize: 'var(--text-sm)', fontWeight: 600,
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border)', background: 'var(--surface)',
-                    color: 'var(--ink)', cursor: initLoading ? 'not-allowed' : 'pointer',
-                    opacity: initLoading ? 0.55 : 1, whiteSpace: 'nowrap',
+                    color: 'var(--ink)', textDecoration: 'none', whiteSpace: 'nowrap',
                   }}
                 >
-                  <IkonLembarBaru />
-                  {initLoading ? 'Membuat…' : `Buat Sheet ${nextMonth}`}
-                </button>
+                  <IkonUnduh />
+                  Unduh CSV
+                </a>
               )}
 
               <select
@@ -401,16 +362,6 @@ export default function Home() {
               </select>
             </div>
           </div>
-
-          {initMsg && (
-            <div style={{
-              padding: 'var(--space-2) var(--pad-section)',
-              fontSize: 'var(--text-sm)', color: 'var(--money-in)',
-              borderTop: '1px solid var(--border)',
-            }}>
-              {initMsg}
-            </div>
-          )}
 
           {/* Tab tetap bergaris bawah, bukan chip. Tab berpindah tampilan,
               chip di Job Tracker menyaring daftar yang sama — fungsinya beda,
@@ -674,6 +625,36 @@ export default function Home() {
                             marginTop: 'var(--space-2)',
                           }}>
                             Pilih dari daftar agar masuk ke target tabungan yang sudah ada.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Dompet — semua kecuali Tabungan */}
+                    {formType !== 'saving' && (
+                      <div style={{ marginBottom: 'var(--space-4)' }}>
+                        <p style={{
+                          fontSize: 'var(--text-2xs)', color: 'var(--muted)',
+                          marginBottom: 'var(--space-2)', textTransform: 'uppercase',
+                          letterSpacing: 'var(--tracking-label)',
+                        }}>Dompet</p>
+ 
+                        <select
+                          value={formData.walletId}
+                          onChange={e => setFormData({ ...formData, walletId: e.target.value })}
+                        >
+                          <option value="">Tidak ditentukan</option>
+                          {(data?.wallets || []).map(w => (
+                            <option key={w.id} value={w.id}>{w.nama} · {w.jenis}</option>
+                          ))}
+                        </select>
+ 
+                        {(!data?.wallets || data.wallets.length === 0) && (
+                          <p style={{
+                            fontSize: 'var(--text-xs)', color: 'var(--muted)',
+                            marginTop: 'var(--space-2)',
+                          }}>
+                            Belum ada dompet. Buat dulu di bagian Dompet agar saldo bisa dihitung.
                           </p>
                         )}
                       </div>

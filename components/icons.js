@@ -89,3 +89,11 @@ export const IkonTarget = p => (
     <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
   </svg>
 )
+
+export const IkonUnduh = p => (
+  <svg {...dasar} {...p}>
+    <path d="M12 3.5v11" />
+    <path d="M7.8 10.6 12 14.8l4.2-4.2" />
+    <path d="M4.5 17v2.5a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V17" />
+  </svg>
+)

@@ -179,10 +179,21 @@ async function handler(req, res) {
     // Nama komponen yang punya target. Dikirim bersama data periode supaya
     // form tambah tabungan bisa menawarkannya sebagai pilihan — tanpa
     // permintaan jaringan tambahan.
+    // Nama komponen yang punya target. Dikirim bersama data periode supaya
+    // form tambah tabungan bisa menawarkannya sebagai pilihan.
     const goalRows = await sql`
       select component from saving_goals where aktif = true order by component
     `
     const savingGoals = goalRows.map(r => r.component)
+
+    // Dompet aktif dikirim bersama data periode supaya form tambah
+    // transaksi bisa menawarkannya tanpa permintaan jaringan terpisah.
+    const walletRows = await sql`
+      select id, nama, jenis from wallets where aktif = true order by urutan, nama
+    `
+    const wallets = walletRows.map(r => ({
+      id: Number(r.id), nama: r.nama, jenis: r.jenis,
+    }))
 
     res.json({
       sheetName: month,
@@ -193,6 +204,7 @@ async function handler(req, res) {
       fixedCost,
       saving,
 	  savingGoals,
+	  wallets,
       rekap,
       summary: {
         totalIncome,

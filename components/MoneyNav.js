@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import {
-  IkonGrafik, IkonTambah, IkonDaftar, IkonUlang, IkonTarget,
+  IkonGrafik, IkonTambah, IkonDaftar, IkonUlang, IkonTarget, IkonDompet,
 } from './icons'
 
 // Baris navigasi modul keuangan.
@@ -20,6 +20,7 @@ export default function MoneyNav({ tab, onTab, aktif }) {
     { id: 'transactions', label: 'Transaksi', Icon: IkonDaftar },
     { id: 'rutin', label: 'Rutin', Icon: IkonUlang, href: '/money/rutin' },
     { id: 'target', label: 'Target', Icon: IkonTarget, href: '/money/target' },
+    { id: 'dompet', label: 'Dompet', Icon: IkonDompet, href: '/money/dompet' },
   ]
 
   const sedangAktif = i => (i.href ? aktif === i.id : !aktif && tab === i.id)

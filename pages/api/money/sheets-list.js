@@ -1,10 +1,18 @@
 import { withAuth } from '../../../lib/auth'
 import { sql } from '../../../lib/db'
-import { getCurrentPeriod, monthIndex } from '../../../lib/periods'
+import { getCurrentPeriod, monthIndex, nextPeriod } from '../../../lib/periods'
 
-// Nama file dan bentuk responsnya dipertahankan (`{ sheets: [...] }`)
-// supaya pages/index.js tidak perlu diubah. Isinya sekarang daftar periode
-// yang punya data di database, bukan daftar tab spreadsheet.
+// Bentuk respons dipertahankan (`{ sheets: [...] }`) supaya frontend
+// tidak perlu diubah. Isinya daftar periode yang bisa dipilih.
+//
+// Periode berjalan dan periode berikutnya SELALU ikut, meski belum punya
+// data sama sekali. Tanpa itu, tidak ada cara memilih periode kosong untuk
+// mulai mengisinya — dropdown hanya menampilkan yang sudah berisi, dan
+// yang belum berisi tidak akan pernah berisi karena tidak bisa dipilih.
+//
+// Ini yang menggantikan endpoint init-sheet. Baris fixed cost untuk periode
+// baru dibuat sendiri oleh data.js saat periode itu pertama kali dibuka,
+// dan nilainya diisi template Rutin.
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -15,7 +23,6 @@ async function handler(req, res) {
   const year = parseInt(req.query.year, 10) || current.year
 
   try {
-    // UNION menggabungkan hasil keempat tabel dan otomatis membuang duplikat.
     const rows = await sql`
       SELECT month FROM variable_expenses WHERE year = ${year}
       UNION
@@ -27,11 +34,17 @@ async function handler(req, res) {
     `
 
     const names = new Set(rows.map(r => r.month))
-    // Periode berjalan selalu ikut ditampilkan walaupun masih kosong,
-    // supaya bisa langsung dipilih dan diisi.
-    if (year === current.year) names.add(current.month)
 
-    // Urutkan menurut urutan bulan, bukan alfabet.
+    if (year === current.year) {
+      names.add(current.month)
+
+      // Periode berikutnya ikut ditawarkan supaya bisa diisi lebih awal.
+      // Kalau berikutnya jatuh di tahun depan, dia tidak ditampilkan di
+      // daftar tahun ini — itu benar, bukan kelalaian.
+      const berikut = nextPeriod(current.month, current.year)
+      if (berikut && berikut.year === year) names.add(berikut.month)
+    }
+
     const sheets = [...names].sort((a, b) => monthIndex(a) - monthIndex(b))
 
     res.json({ sheets, year })
