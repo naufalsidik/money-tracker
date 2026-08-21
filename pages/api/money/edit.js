@@ -33,6 +33,12 @@ async function handler(req, res) {
   }
 
   const id = Number(rowNum)
+  // Dompet opsional. Nilai tak masuk akal jadi null, bukan ditolak,
+  // supaya penyuntingan tidak gagal hanya karena dompetnya dikosongkan.
+  const walletIdMentah = parseInt(data?.walletId, 10)
+  const walletId = Number.isInteger(walletIdMentah) && walletIdMentah > 0
+    ? walletIdMentah
+    : null
   if (!isValidId(id)) {
     return res.status(400).json({ error: 'ID baris tidak valid' })
   }
@@ -105,6 +111,7 @@ async function handler(req, res) {
             description = ${data.description.trim()},
             category = ${data.category},
             amount = ${Math.round(Number(data.amount))}
+			wallet_id = ${walletId}
         WHERE id = ${id} AND month = ${month} AND year = ${year}
         RETURNING id
       `
@@ -116,6 +123,7 @@ async function handler(req, res) {
         SET tanggal = ${iso},
             description = ${data.description.trim()},
             amount = ${Math.round(Number(data.amount))}
+			wallet_id = ${walletId}
         WHERE id = ${id} AND month = ${month} AND year = ${year}
         RETURNING id
       `
@@ -131,6 +139,7 @@ async function handler(req, res) {
       result = await sql`
         UPDATE fixed_costs
         SET amount = ${Math.round(Number(data.amount))}
+			wallet_id = ${walletId}
         WHERE id = ${id} AND month = ${month} AND year = ${year}
         RETURNING id
       `

@@ -142,6 +142,32 @@ export default function Home() {
     } catch { alert('Error.') }
   }
 
+  // Dipakai di tabel transaksi. Nama dompet ditampilkan sebagai baris kecil
+  // di bawah deskripsi, bukan kolom tersendiri — tabel Pemasukan dan Tabungan
+  // tidak punya header, jadi menambah kolom berarti membongkar tiga tabel.
+  const NamaDompet = ({ id }) => {
+    const w = (data?.wallets || []).find(x => x.id === id)
+    return (
+      <span style={{ display: 'block', fontSize: 'var(--text-2xs)', color: 'var(--muted)', marginTop: 2 }}>
+        {w ? w.nama : 'tanpa dompet'}
+      </span>
+    )
+  }
+
+  const PilihDompet = () => (
+    <select
+      aria-label="Dompet"
+      value={editForm.walletId ?? ''}
+      onChange={e => setEditForm({ ...editForm, walletId: e.target.value })}
+      style={{ padding: '4px var(--space-2)', fontSize: 'var(--text-2xs)', marginTop: 4 }}
+    >
+      <option value="">Tanpa dompet</option>
+      {(data?.wallets || []).map(w => (
+        <option key={w.id} value={w.id}>{w.nama}</option>
+      ))}
+    </select>
+  )
+
   async function handleSaveEdit(type) {
     setEditSaving(true)
     try {
@@ -708,6 +734,7 @@ export default function Home() {
                               <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
                                 <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                                   style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)' }} maxLength={200} />
+                                <PilihDompet />
                               </td>
                               <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
                                 <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}
@@ -735,13 +762,16 @@ export default function Home() {
                               onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                               <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{t.date}</td>
-                              <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>{t.description}</td>
+                              <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>
+                                {t.description}
+                                <NamaDompet id={t.walletId} />
+                              </td>
                               <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
                                 <span style={{ fontSize: 'var(--text-2xs)', padding: '2px var(--space-2)', borderRadius: 'var(--radius-full)', fontWeight: 500, background: (CATEGORY_COLORS[t.category] || 'var(--money-plan)') + '22', color: CATEGORY_COLORS[t.category] || 'var(--money-plan)' }}>{t.category}</span>
                               </td>
                               <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--money-out)' }}>{formatRp(t.amount)}</td>
                               <td style={{ padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>
-                                <button onClick={() => { setEditingRow({ ...t, type: 'variable' }); setEditForm({ date: t.date, description: t.description, category: t.category, amount: t.amount }) }}
+                                <button onClick={() => { setEditingRow({ ...t, type: 'variable' }); setEditForm({ date: t.date, description: t.description, category: t.category, amount: t.amount, walletId: t.walletId ?? '' }) }}
                                   style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 6 }}>
                                   Edit
                                 </button>
@@ -834,6 +864,7 @@ export default function Home() {
                                 <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
                                   <input type="text" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                                     style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)' }} maxLength={200} />
+                                  <PilihDompet />
                                 </td>
                                 <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
                                   <input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })}
@@ -855,10 +886,13 @@ export default function Home() {
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                 <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-2xs)', color: 'var(--muted)', width: 100 }}>{t.date}</td>
-                                <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>{t.description}</td>
+                                <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--ink)' }}>
+                                  {t.description}
+                                  <NamaDompet id={t.walletId} />
+                                </td>
                                 <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--money-in)' }}>{formatRp(t.amount)}</td>
                                 <td style={{ padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>
-                                  <button onClick={() => { setEditingRow({ ...t, type: 'income' }); setEditForm({ date: t.date, description: t.description, amount: t.amount }) }}
+                                  <button onClick={() => { setEditingRow({ ...t, type: 'income' }); setEditForm({ date: t.date, description: t.description, amount: t.amount, walletId: t.walletId ?? '' }) }}
                                     style={{ fontSize: 'var(--text-2xs)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 6 }}>
                                     Edit
                                   </button>

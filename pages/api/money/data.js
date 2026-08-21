@@ -51,20 +51,20 @@ async function handler(req, res) {
     const [varRows, incRows, fixedRows, savingRows] = await Promise.all([
       sql`
         SELECT id, to_char(tanggal, 'YYYY-MM-DD') AS tanggal,
-               description, category, amount
+               description, category, amount, wallet_id
         FROM variable_expenses
         WHERE month = ${month} AND year = ${year}
         ORDER BY tanggal ASC, id ASC
       `,
       sql`
         SELECT id, to_char(tanggal, 'YYYY-MM-DD') AS tanggal,
-               description, amount
+               description, amount, wallet_id
         FROM incomes
         WHERE month = ${month} AND year = ${year}
         ORDER BY tanggal ASC, id ASC
       `,
       sql`
-        SELECT id, item, amount
+        SELECT id, item, amount, wallet_id
         FROM fixed_costs
         WHERE month = ${month} AND year = ${year}
       `,
@@ -83,6 +83,7 @@ async function handler(req, res) {
       description: r.description,
       category: r.category,
       amount: toNumber(r.amount),
+	  walletId: r.wallet_id === null ? null : Number(r.wallet_id),
     }))
 
     const income = incRows.map(r => ({
@@ -91,6 +92,7 @@ async function handler(req, res) {
       isoDate: r.tanggal,
       description: r.description,
       amount: toNumber(r.amount),
+	  walletId: r.wallet_id === null ? null : Number(r.wallet_id),
     }))
 
     const saving = savingRows.map(r => ({
@@ -115,6 +117,7 @@ async function handler(req, res) {
         item,
         amount,
         percentage: pct.toFixed(2) + '%',
+		walletId: row && row.wallet_id !== null ? Number(row.wallet_id) : null,
       }
     })
     const totalFixed = fixedCost.reduce((s, f) => s + f.amount, 0)
