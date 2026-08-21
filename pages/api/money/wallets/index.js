@@ -36,13 +36,13 @@ async function handler(req, res) {
       `
       const transfer = await sql`
         select t.id, to_char(t.tanggal, 'YYYY-MM-DD') as tanggal,
-               t.amount, t.catatan,
+               t.amount, t.fee, t.catatan,
                d.nama as dari, k.nama as ke
         from wallet_transfers t
         join wallets d on d.id = t.dari_id
         join wallets k on k.id = t.ke_id
         order by t.tanggal desc, t.id desc
-        limit 20
+        limit 50
       `
       const dompet = baris.map(keJson)
       return res.json({
@@ -50,7 +50,7 @@ async function handler(req, res) {
         total: dompet.filter(w => w.aktif).reduce((s, w) => s + w.saldo, 0),
         transfer: transfer.map(t => ({
           id: Number(t.id), tanggal: t.tanggal, amount: toNumber(t.amount),
-          catatan: t.catatan, dari: t.dari, ke: t.ke,
+          fee: toNumber(t.fee), catatan: t.catatan, dari: t.dari, ke: t.ke,
         })),
         jenis: JENIS_DOMPET,
       })

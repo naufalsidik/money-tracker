@@ -10,8 +10,16 @@ const keJson = r => ({
   category: r.category,
   amount: toNumber(r.amount),
   hari: Number(r.hari),
+  walletId: r.wallet_id === null ? null : Number(r.wallet_id),
   aktif: r.aktif,
 })
+
+// Dompet boleh kosong. Nilai yang tidak masuk akal jadi null, bukan ditolak,
+// supaya template tetap tersimpan meski dompetnya belum ditentukan.
+const bersihkanWallet = v => {
+  const n = parseInt(v, 10)
+  return Number.isInteger(n) && n > 0 ? n : null
+}
 
 async function handler(req, res) {
   try {
@@ -29,7 +37,7 @@ async function handler(req, res) {
       if (galat.length) return res.status(400).json({ error: galat.join(', ') })
 
       const baris = await sql`
-        insert into recurring (jenis, description, item, category, amount, hari, aktif)
+        insert into recurring (jenis, description, item, category, amount, hari, wallet_id, aktif)
         values (
           ${d.jenis},
           ${d.jenis === 'fixed' ? '' : String(d.description).trim()},
@@ -37,6 +45,7 @@ async function handler(req, res) {
           ${d.jenis === 'variable' ? d.category : null},
           ${Math.round(Number(d.amount))},
           ${Number(d.hari)},
+          ${bersihkanWallet(d.walletId)},
           ${d.aktif !== false}
         )
         returning *

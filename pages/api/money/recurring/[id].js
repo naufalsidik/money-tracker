@@ -11,8 +11,14 @@ const keJson = r => ({
   category: r.category,
   amount: toNumber(r.amount),
   hari: Number(r.hari),
+  walletId: r.wallet_id === null ? null : Number(r.wallet_id),
   aktif: r.aktif,
 })
+
+const bersihkanWallet = v => {
+  const n = parseInt(v, 10)
+  return Number.isInteger(n) && n > 0 ? n : null
+}
 
 async function handler(req, res) {
   const id = parseInt(req.query.id, 10)
@@ -32,6 +38,7 @@ async function handler(req, res) {
           category    = ${d.jenis === 'variable' ? d.category : null},
           amount      = ${Math.round(Number(d.amount))},
           hari        = ${Number(d.hari)},
+          wallet_id   = ${bersihkanWallet(d.walletId)},
           aktif       = ${d.aktif !== false},
           updated_at  = now()
         where id = ${id}

@@ -8,11 +8,6 @@ const KOSONG_DOMPET = {
   catatan: '', aktif: true,
 }
 
-const KOSONG_TRANSFER = {
-  tanggal: new Date().toISOString().slice(0, 10),
-  dariId: '', keId: '', amount: '', catatan: '',
-}
-
 const rp = n => 'Rp' + Number(n || 0).toLocaleString('id-ID')
 
 const fmt = d => {
@@ -33,7 +28,6 @@ async function api(path, opsi) {
 export default function Dompet() {
   const [data, setData] = useState(null)
   const [draf, setDraf] = useState(null)
-  const [transfer, setTransfer] = useState(null)
   const [galat, setGalat] = useState('')
 
   const muat = useCallback(async () => {
@@ -56,32 +50,13 @@ export default function Dompet() {
     } catch (err) { setGalat(err.message) }
   }
 
-  async function simpanTransfer(e) {
-    e.preventDefault()
-    try {
-      await api('/api/money/wallets/transfer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...transfer, amount: Number(transfer.amount) }),
-      })
-      setTransfer(null); muat()
-    } catch (err) { setGalat(err.message) }
-  }
-
   async function hapusDompet(w) {
     if (!confirm(`Hapus dompet "${w.nama}"? Transaksi yang menunjuk dompet ini kehilangan penandanya, tapi nominalnya tetap ada.`)) return
     try { await api('/api/money/wallets/' + w.id, { method: 'DELETE' }); muat() }
     catch (e) { setGalat(e.message) }
   }
 
-  async function hapusTransfer(t) {
-    if (!confirm(`Hapus transfer ${rp(t.amount)} dari ${t.dari} ke ${t.ke}?`)) return
-    try { await api('/api/money/wallets/transfer?id=' + t.id, { method: 'DELETE' }); muat() }
-    catch (e) { setGalat(e.message) }
-  }
-
   const ubah = (k, v) => setDraf(d => ({ ...d, [k]: v }))
-  const ubahT = (k, v) => setTransfer(d => ({ ...d, [k]: v }))
 
   const dompet = data?.dompet || []
   const aktif = dompet.filter(w => w.aktif)
@@ -99,11 +74,6 @@ export default function Dompet() {
             </p>
           </div>
           <div className="aksi">
-            {aktif.length >= 2 && (
-              <button className="btn" onClick={() => setTransfer({ ...KOSONG_TRANSFER })}>
-                Transfer
-              </button>
-            )}
             <button className="btn solid" onClick={() => setDraf({ ...KOSONG_DOMPET })}>
               Tambah dompet
             </button>
@@ -176,22 +146,6 @@ export default function Dompet() {
               </ul>
             </>
           )}
-
-          {data?.transfer?.length > 0 && (
-            <section className="riwayat">
-              <h2>Transfer terakhir</h2>
-              <ul>
-                {data.transfer.map(t => (
-                  <li key={t.id}>
-                    <span className="tgl">{fmt(t.tanggal)}</span>
-                    <span className="rute">{t.dari} → {t.ke}</span>
-                    <span className="num nom">{rp(t.amount)}</span>
-                    <button className="ico bahaya" onClick={() => hapusTransfer(t)} aria-label="Hapus transfer">Hapus</button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
         </div>
 
         {draf && (
@@ -247,61 +201,6 @@ export default function Dompet() {
           </div>
         )}
 
-        {transfer && (
-          <div className="tirai" onClick={e => { if (e.target === e.currentTarget) setTransfer(null) }}>
-            <form className="modal" onSubmit={simpanTransfer}>
-              <div className="mhead">
-                <h2>Transfer antar dompet</h2>
-                <button type="button" className="ico" onClick={() => setTransfer(null)} aria-label="Tutup">✕</button>
-              </div>
-
-              <p className="bantu">
-                Transfer tidak dihitung sebagai pemasukan maupun pengeluaran.
-                Uangnya hanya berpindah tempat.
-              </p>
-
-              <div className="f">
-                <label htmlFor="tanggal">Tanggal</label>
-                <input id="tanggal" type="date" required value={transfer.tanggal}
-                  onChange={e => ubahT('tanggal', e.target.value)} />
-              </div>
-
-              <div className="f">
-                <label htmlFor="dariId">Dari</label>
-                <select id="dariId" required value={transfer.dariId} onChange={e => ubahT('dariId', e.target.value)}>
-                  <option value="">Pilih dompet</option>
-                  {aktif.map(w => <option key={w.id} value={w.id}>{w.nama}</option>)}
-                </select>
-              </div>
-
-              <div className="f">
-                <label htmlFor="keId">Ke</label>
-                <select id="keId" required value={transfer.keId} onChange={e => ubahT('keId', e.target.value)}>
-                  <option value="">Pilih dompet</option>
-                  {aktif.filter(w => String(w.id) !== String(transfer.dariId))
-                    .map(w => <option key={w.id} value={w.id}>{w.nama}</option>)}
-                </select>
-              </div>
-
-              <div className="f">
-                <label htmlFor="amount">Jumlah</label>
-                <input id="amount" type="number" min="1" required value={transfer.amount}
-                  onChange={e => ubahT('amount', e.target.value)} />
-              </div>
-
-              <div className="f">
-                <label htmlFor="tcatatan">Catatan</label>
-                <input id="tcatatan" maxLength={200} value={transfer.catatan}
-                  onChange={e => ubahT('catatan', e.target.value)} />
-              </div>
-
-              <div className="mfoot">
-                <button type="button" className="btn" onClick={() => setTransfer(null)}>Batal</button>
-                <button type="submit" className="btn solid">Simpan</button>
-              </div>
-            </form>
-          </div>
-        )}
       </div>
 
       <style jsx>{`

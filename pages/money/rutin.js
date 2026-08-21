@@ -13,7 +13,7 @@ const JENIS = [
 
 const KOSONG = {
   jenis: 'fixed', description: '', item: FIXED_ITEMS[0],
-  category: VAR_CATEGORIES[0], amount: '', hari: 20, aktif: true,
+  category: VAR_CATEGORIES[0], amount: '', hari: 20, walletId: '', aktif: true,
 }
 
 const rp = n => 'Rp' + Number(n || 0).toLocaleString('id-ID')
@@ -38,6 +38,7 @@ async function api(path, opsi) {
 
 export default function Berulang() {
   const [daftar, setDaftar] = useState(null)
+  const [dompet, setDompet] = useState([])
   const [draf, setDraf] = useState(null)
   const [galat, setGalat] = useState('')
 
@@ -47,6 +48,18 @@ export default function Berulang() {
   }, [])
 
   useEffect(() => { muat() }, [muat])
+
+  // Daftar dompet diambil terpisah karena endpoint rutin tidak
+  // membawanya. Gagal mengambilnya tidak fatal: dropdown jadi kosong,
+  // template tetap bisa disimpan tanpa dompet.
+  useEffect(() => {
+    let batal = false
+    fetch('/api/money/wallets')
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => { if (!batal && j) setDompet(j.dompet.filter(w => w.aktif)) })
+      .catch(() => {})
+    return () => { batal = true }
+  }, [])
 
   async function simpan(e) {
     e.preventDefault()
@@ -132,6 +145,9 @@ export default function Berulang() {
                     {labelJenis(r.jenis)}
                     {r.category ? ` · ${r.category}` : ''}
                     {' · '}{jelaskanHari(r.hari)}
+                    {r.walletId
+                      ? ` · ${dompet.find(w => w.id === r.walletId)?.nama || 'dompet terhapus'}`
+                      : ' · tanpa dompet'}
                     {r.aktif ? '' : ' · nonaktif'}
                   </p>
                 </div>
@@ -196,6 +212,21 @@ export default function Berulang() {
                 <label htmlFor="amount">Jumlah</label>
                 <input id="amount" type="number" min="0" required value={draf.amount}
                   onChange={e => ubah('amount', e.target.value)} />
+              </div>
+
+              <div className="f">
+                <label htmlFor="walletId">Dompet</label>
+                <select id="walletId" value={draf.walletId ?? ''}
+                  aria-describedby="dompet-bantu"
+                  onChange={e => ubah('walletId', e.target.value)}>
+                  <option value="">Tidak ditentukan</option>
+                  {dompet.map(w => (
+                    <option key={w.id} value={w.id}>{w.nama} · {w.jenis}</option>
+                  ))}
+                </select>
+                <span className="bantu" id="dompet-bantu">
+                  Tanpa dompet, transaksinya tetap tercatat tapi saldo tidak bergerak.
+                </span>
               </div>
 
               <div className="f">

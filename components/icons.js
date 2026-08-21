@@ -97,3 +97,12 @@ export const IkonUnduh = p => (
     <path d="M4.5 17v2.5a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V17" />
   </svg>
 )
+
+export const IkonTransfer = p => (
+  <svg {...dasar} {...p}>
+    <path d="M4 8.5h13" />
+    <path d="M13.5 5 17 8.5 13.5 12" />
+    <path d="M20 15.5H7" />
+    <path d="M10.5 12 7 15.5 10.5 19" />
+  </svg>
+)
