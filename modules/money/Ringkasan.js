@@ -28,9 +28,14 @@ export default function RingkasanMoney({ modul }) {
       galat={galat}
       labelUtama={data ? `Sisa ${data.period}` : 'Sisa'}
       utama={rp(sisa)}
+      // Nominal di sini netral. Labelnya sudah menyebut arah uangnya,
+      // jadi warna tidak menambah informasi apa pun — dan warna yang
+      // selalu menyala berhenti berarti apa-apa saat benar-benar ada
+      // yang perlu diperhatikan. Bandingkan dengan modul lamaran:
+      // di sana warna hanya muncul kalau ada yang harus ditindaklanjuti.
       rinci={s ? [
-        { label: 'Masuk', nilai: rp(s.totalIncome), warna: 'var(--money-in)' },
-        { label: 'Keluar', nilai: rp(s.totalVariable + s.totalFixed), warna: 'var(--money-out)' },
+        { label: 'Masuk', nilai: rp(s.totalIncome) },
+        { label: 'Keluar', nilai: rp(s.totalVariable + s.totalFixed) },
         { label: 'Tabungan', nilai: rp(s.totalSaving) },
       ] : []}
     />

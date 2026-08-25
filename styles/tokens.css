@@ -5,7 +5,11 @@
 
    Mode terang adalah acuan. Mode gelap diturunkan, bukan sekadar
    dibalik: warna semantik punya pasangannya sendiri karena warna yang
-   kontras di latar krem menjadi tidak terbaca di latar navy.
+   kontras di latar krem menjadi tidak terbaca di latar gelap.
+
+   v2 — arah Navan: satu aksen, angka netral, label mundur.
+   Semua nama variabel lama dipertahankan. Yang berubah nilainya, bukan
+   namanya, supaya tidak ada komponen yang putus.
    ========================================================================== */
 
 :root {
@@ -18,20 +22,24 @@
   --font-mono: var(--font-body);
 
   /* Tangga ukuran. Isi 15px, bukan 16px, karena tabel ini padat;
-     tapi tidak pernah di bawah 12px supaya tetap terbaca. */
-  --text-2xs: 0.6875rem;  /* 11px — hanya label mono huruf besar */
-  --text-xs:  0.75rem;    /* 12px */
-  --text-sm:  0.8125rem;  /* 13px */
-  --text-md:  0.9375rem;  /* 15px — isi */
-  --text-lg:  1.125rem;   /* 18px */
-  --text-xl:  1.5rem;     /* 24px */
-  --text-2xl: 1.9375rem;  /* 31px — judul halaman */
+     tapi tidak pernah di bawah 12px supaya tetap terbaca.
+     v2: --text-2xs (11px) dipertahankan tapi JANGAN dipakai untuk label
+     baru. Label memakai --text-xs. 11px di bawah ambang keterbacaan. */
+  --text-2xs: 0.75rem;    /* 12px — warisan, hindari untuk konten baru */
+  --text-xs:  0.8125rem;  /* 13px — label huruf besar */
+  --text-sm:  0.875rem;   /* 14px */
+  --text-md:  1rem;       /* 16px — isi */
+  --text-lg:  1.25rem;    /* 20px — judul section */
+  --text-xl:  1.625rem;   /* 26px — metrik sekunder */
+  --text-2xl: 2.125rem;   /* 34px — judul halaman, metrik utama */
 
   --leading-tight: 1.15;
   --leading-snug: 1.35;
   --leading-normal: 1.5;
 
-  --tracking-label: 0.11em;  /* label mono huruf besar */
+  /* v2: 0.11em terlalu renggang, label jadi berserak dan sulit dibaca
+     sebagai satu kesatuan. 0.08em cukup untuk menandai huruf besar. */
+  --tracking-label: 0.08em;
   --tracking-tight: -0.015em;
 
   /* ---- jarak, ritme 4px ---- */
@@ -45,27 +53,44 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  --pad-card: var(--space-5);      /* 20px, bukan 8px */
+  /* v2: kartu dinaikkan ke 24px. Kartu referensi bernapas walau isinya
+     cuma empat angka. Di bawah 768px turun lagi ke 16px, lihat blok
+     media query di bawah. */
+  --pad-card: var(--space-6);
   --pad-section: var(--space-6);
-  --gap-grid: var(--space-3);
+  --gap-grid: var(--space-4);
+
+  /* Jarak antar section di kanvas. Judul section duduk di luar kartu. */
+  --gap-section: var(--space-10);
 
   /* ---- bentuk ---- */
   --radius-sm: 6px;    /* kontrol: tombol, input, chip */
-  --radius-md: 10px;   /* kartu, panel */
+  --radius-md: 14px;   /* kartu, panel — v2: naik dari 10px */
   --radius-full: 999px;
 
   --border-width: 1px;
 
   /* ---- tata letak ---- */
-  --sidebar-w: 232px;
+  --sidebar-w: 252px;
   --sidebar-w-collapsed: 60px;
   --content-max: 100%;
+
+  /* Tinggi baris list transaksi/lamaran. Sebelumnya ~63px karena padding
+     bebas di komponen. Dikunci di sini supaya semua list seragam. */
+  --row-h: 56px;
 
   /* ---- gerak ---- */
   --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
   --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 450ms;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --pad-card: var(--space-4);
+    --gap-grid: var(--space-3);
+  }
 }
 
 /* ==========================================================================
@@ -77,52 +102,91 @@
 
   --bg: #F2EFE8;
   --surface: #FFFFFF;
-  --surface-2: #EAE6DD;
+  --surface-2: #EAE6DD;   /* blok cekung: header tabel, isian pasif */
+  --hover: #EDE9E0;       /* v2 baru: latar baris/tombol saat hover */
   --border: #D8D3C7;
   --border-strong: #BDB6A6;
 
-  --ink: #152A3D;
-  --ink-2: #44586A;
-  --muted: #5A6B7A;
+  /* v2: netral hangat, bukan navy. Kanvas krem hangat berpasangan
+     dengan teks dingin adalah bentrok halus yang muncul di setiap
+     layar. Kontras terhadap --surface tetap di kisaran yang sama. */
+  --ink: #1D1B17;
+  --ink-2: #5C574E;
+  --muted: #6F6A60;
 
   --accent: #0C6E75;
   --accent-quiet: #1AA0A8;   /* garis, isian, ikon — bukan teks kecil */
+  --accent-soft: #E2EFEE;    /* v2 baru: isi chip aktif, pil kategori */
+  --accent-line: #B3D6D4;    /* v2 baru: garis chip aktif */
   --on-accent: #FFFFFF;
 
   --warn: #A8442A;
+  --warn-soft: #F8ECE7;      /* v2 baru */
   --danger: #932C2C;
+  --danger-soft: #F9EAEA;    /* v2 baru */
   --ok: #0A6B52;
+  --ok-soft: #E4F1EC;        /* v2 baru */
 
-  --solid: #152A3D;
+  /* v2: --solid dulu navy di terang tapi teal di gelap, jadi tombol
+     utama berganti identitas antar mode. Sekarang aksen di dua-duanya. */
+  --solid: var(--accent);
   --on-solid: #FFFFFF;
 
-  --shadow-card: 0 1px 0 rgba(21, 42, 61, .05), 0 4px 14px -8px rgba(21, 42, 61, .22);
-  --shadow-pop: 0 20px 50px -14px rgba(21, 42, 61, .38);
+  --shadow-card: 0 1px 0 rgba(29, 27, 23, .04), 0 4px 14px -8px rgba(29, 27, 23, .18);
+  --shadow-pop: 0 20px 50px -14px rgba(29, 27, 23, .34);
 
-  /* status lamaran */
-  --st-Progress:  #576977;
+  /* status lamaran
+     v2: tujuh warna diciutkan jadi empat kelompok. Nama tetap tujuh
+     supaya tidak ada komponen yang putus. Screening menyatu ke Applied,
+     Ghosted menyatu ke Progress — keduanya tidak pernah dibedakan
+     secara tindakan, cuma secara label. */
+  --st-Progress:  #5C574E;
   --st-Applied:   #2E4192;
-  --st-Screening: #653AA8;
+  --st-Screening: #2E4192;
   --st-Interview: #8F4A07;
   --st-Offer:     #0A6B52;
   --st-Rejected:  #932C2C;
-  --st-Ghosted:   #5E6A74;
+  --st-Ghosted:   #5C574E;
 
-  /* suhu tunggu */
+  /* suhu tunggu
+     v2: --w-hot diarahkan ke oranye yang sama dengan --w-warm tidak
+     dilakukan; justru --w-warm dan --w-hot disatukan ke satu oranye
+     supaya bar tunggu cuma punya empat tingkat: aman, perlu ditengok,
+     mendesak, mati. */
   --w-calm: #0A6B52;
-  --w-warm: #8A6A08;
+  --w-warm: #8F4A07;
   --w-hot:  #8F4A07;
   --w-cold: #932C2C;
-  --w-mati: #B9B2A4;
+  --w-mati: #BDB6A6;
 
-  /* uang */
+  /* uang
+     PENTING: --money-out BUKAN untuk nominal biasa. Nominal pengeluaran
+     di list dan di kartu metrik memakai --ink (netral). --money-out
+     hanya untuk selisih negatif dan pelanggaran budget. Kalau setiap
+     angka merah, merah tidak berarti apa-apa. */
   --money-in: #0A6B52;
   --money-out: #932C2C;
   --money-plan: #0C6E75;
+
+  /* chart — v2 baru
+     Breakdown pengeluaran itu satu seri, jadi tangga satu warna, bukan
+     palet kategorikal. Urut dari nilai terbesar. */
+  --chart-1: #0C6E75;
+  --chart-2: #2A8E93;
+  --chart-3: #55ADB0;
+  --chart-4: #86CBCC;
+  --chart-5: #B8E3E3;
+  --chart-grid: #E4DFD4;
+  --chart-axis: #8A857A;
+  --chart-actual: var(--accent);   /* garis pengeluaran, solid */
+  --chart-target: #8A857A;         /* garis budget, dashed */
+  --chart-over: var(--danger);     /* hanya segmen yang melewati budget */
 }
 
 /* ==========================================================================
    MODE GELAP — diturunkan, bukan dibalik
+   Netral dingin dipertahankan. Terang jadi hangat, gelap tidak ikut,
+   karena netral gelap yang hangat cenderung terlihat keruh.
    ========================================================================== */
 [data-theme='dark'] {
   color-scheme: dark;
@@ -130,6 +194,7 @@
   --bg: #0C0D0F;
   --surface: #16181B;
   --surface-2: #1F2226;
+  --hover: #23272C;
   --border: #2A2E33;
   --border-strong: #3B4148;
 
@@ -139,13 +204,18 @@
 
   --accent: #3FC2CA;
   --accent-quiet: #2A9BA3;
+  --accent-soft: #10262A;
+  --accent-line: #21474D;
   --on-accent: #0B0C0E;
 
   --warn: #E38A68;
+  --warn-soft: #2A1810;
   --danger: #F08585;
+  --danger-soft: #2B1416;
   --ok: #4FC79E;
+  --ok-soft: #0E2620;
 
-  --solid: #3FC2CA;
+  --solid: var(--accent);
   --on-solid: #0B0C0E;
 
   --shadow-card: 0 1px 0 rgba(0, 0, 0, .4), 0 4px 14px -8px rgba(0, 0, 0, .7);
@@ -153,14 +223,14 @@
 
   --st-Progress:  #9AA1A8;
   --st-Applied:   #7C93E8;
-  --st-Screening: #B08CF0;
+  --st-Screening: #7C93E8;
   --st-Interview: #E9A05A;
   --st-Offer:     #4FC79E;
   --st-Rejected:  #F08585;
-  --st-Ghosted:   #8D949B;
+  --st-Ghosted:   #9AA1A8;
 
   --w-calm: #4FC79E;
-  --w-warm: #D9B45C;
+  --w-warm: #E9A05A;
   --w-hot:  #E9A05A;
   --w-cold: #F08585;
   --w-mati: #3B4148;
@@ -168,6 +238,17 @@
   --money-in: #4FC79E;
   --money-out: #F08585;
   --money-plan: #3FC2CA;
+
+  --chart-1: #3FC2CA;
+  --chart-2: #35A2AA;
+  --chart-3: #2A838B;
+  --chart-4: #20656C;
+  --chart-5: #17484E;
+  --chart-grid: #24282D;
+  --chart-axis: #868C93;
+  --chart-actual: var(--accent);
+  --chart-target: #868C93;
+  --chart-over: var(--danger);
 }
 
 /* ==========================================================================
@@ -199,6 +280,13 @@ h1, h2, h3, h4 {
   font-weight: 700;
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
+}
+
+/* Judul halaman lebih berat dan lebih rapat. Ini ciri paling kentara
+   dari desain acuan. */
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 button, input, select, textarea { font: inherit; color: inherit; }

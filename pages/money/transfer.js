@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Shell from '../../components/Shell'
 import MoneyNav from '../../components/MoneyNav'
+import { Kartu, JudulSection, Baris } from '../../components/ui'
 
 const KOSONG = {
   tanggal: new Date().toISOString().slice(0, 10),
@@ -76,12 +77,14 @@ export default function Transfer() {
     <Shell title="Transfer">
       <div className="hal">
         <header className="atas">
-          <h1>Transfer</h1>
-          <p className="sub">
-            Memindahkan uang antar dompet. Bukan pemasukan, bukan pengeluaran —
-            total keuangan Anda tidak berubah. Biaya adminnya yang dicatat
-            sebagai pengeluaran.
-          </p>
+          <div>
+            <h1>Transfer</h1>
+            <p className="sub">
+              Memindahkan uang antar dompet. Bukan pemasukan, bukan pengeluaran —
+              total keuangan Anda tidak berubah. Biaya adminnya yang dicatat
+              sebagai pengeluaran.
+            </p>
+          </div>
         </header>
 
         <MoneyNav aktif="transfer" />
@@ -105,204 +108,145 @@ export default function Transfer() {
           )}
 
           {dompet.length >= 2 && (
-            <form className="kartu form" onSubmit={simpan}>
-              <div className="baris">
-                <div className="f">
-                  <label htmlFor="tanggal">Tanggal</label>
-                  <input id="tanggal" type="date" required value={form.tanggal}
-                    onChange={e => ubah('tanggal', e.target.value)} />
-                </div>
+            <section className="blok">
+              <Kartu>
+                <form onSubmit={simpan}>
+                  <div className="baris">
+                    <div className="f">
+                      <label htmlFor="tanggal">Tanggal</label>
+                      <input id="tanggal" type="date" required value={form.tanggal}
+                        onChange={e => ubah('tanggal', e.target.value)} />
+                    </div>
 
-                <div className="f">
-                  <label htmlFor="dariId">Dari</label>
-                  <select id="dariId" required value={form.dariId}
-                    onChange={e => ubah('dariId', e.target.value)}>
-                    <option value="">Pilih dompet</option>
-                    {dompet.map(w => (
-                      <option key={w.id} value={w.id}>{w.nama} · {rp(w.saldo)}</option>
-                    ))}
-                  </select>
-                </div>
+                    <div className="f">
+                      <label htmlFor="dariId">Dari</label>
+                      <select id="dariId" required value={form.dariId}
+                        onChange={e => ubah('dariId', e.target.value)}>
+                        <option value="">Pilih dompet</option>
+                        {dompet.map(w => (
+                          <option key={w.id} value={w.id}>{w.nama} · {rp(w.saldo)}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div className="f">
-                  <label htmlFor="keId">Ke</label>
-                  <select id="keId" required value={form.keId}
-                    onChange={e => ubah('keId', e.target.value)}>
-                    <option value="">Pilih dompet</option>
-                    {dompet.filter(w => String(w.id) !== String(form.dariId))
-                      .map(w => <option key={w.id} value={w.id}>{w.nama}</option>)}
-                  </select>
-                </div>
-              </div>
+                    <div className="f">
+                      <label htmlFor="keId">Ke</label>
+                      <select id="keId" required value={form.keId}
+                        onChange={e => ubah('keId', e.target.value)}>
+                        <option value="">Pilih dompet</option>
+                        {dompet.filter(w => String(w.id) !== String(form.dariId))
+                          .map(w => <option key={w.id} value={w.id}>{w.nama}</option>)}
+                      </select>
+                    </div>
+                  </div>
 
-              <div className="baris">
-                <div className="f">
-                  <label htmlFor="amount">Jumlah transfer</label>
-                  <input id="amount" type="number" min="1" required value={form.amount}
-                    onChange={e => ubah('amount', e.target.value)} />
-                </div>
+                  <div className="baris">
+                    <div className="f">
+                      <label htmlFor="amount">Jumlah transfer</label>
+                      <input id="amount" type="number" min="1" required value={form.amount}
+                        onChange={e => ubah('amount', e.target.value)} />
+                    </div>
 
-                <div className="f">
-                  <label htmlFor="fee">Biaya admin</label>
-                  <input id="fee" type="number" min="0" value={form.fee}
-                    placeholder="0" aria-describedby="fee-bantu"
-                    onChange={e => ubah('fee', e.target.value)} />
-                  <span className="bantu" id="fee-bantu">
-                    Dicatat sebagai pengeluaran kategori Biaya Admin. Kosongkan bila gratis.
-                  </span>
-                </div>
+                    <div className="f">
+                      <label htmlFor="fee">Biaya admin</label>
+                      <input id="fee" type="number" min="0" value={form.fee}
+                        placeholder="0" aria-describedby="fee-bantu"
+                        onChange={e => ubah('fee', e.target.value)} />
+                      <span className="bantu" id="fee-bantu">
+                        Dicatat sebagai pengeluaran kategori Biaya Admin. Kosongkan bila gratis.
+                      </span>
+                    </div>
 
-                <div className="f">
-                  <label htmlFor="catatan">Catatan</label>
-                  <input id="catatan" maxLength={200} value={form.catatan}
-                    onChange={e => ubah('catatan', e.target.value)} />
-                </div>
-              </div>
+                    <div className="f">
+                      <label htmlFor="catatan">Catatan</label>
+                      <input id="catatan" maxLength={200} value={form.catatan}
+                        onChange={e => ubah('catatan', e.target.value)} />
+                    </div>
+                  </div>
 
-              {jumlah > 0 && form.dariId && (
-                <div className={'ringkas' + (kurang ? ' waspada' : '')}>
-                  <p>
-                    <b>{asal?.nama}</b> berkurang <b className="num">{rp(totalKeluar)}</b>
-                    {biaya > 0 && <> ({rp(jumlah)} + admin {rp(biaya)})</>}
-                  </p>
-                  {kurang && (
-                    <p className="peringatan">
-                      Saldo tercatat {rp(asal.saldo)}, kurang {rp(totalKeluar - asal.saldo)}.
-                      Tetap bisa disimpan — saldo bisa saja belum sinkron dengan mutasi asli.
-                    </p>
+                  {jumlah > 0 && form.dariId && (
+                    <div className={'ringkas' + (kurang ? ' waspada' : '')}>
+                      <p>
+                        <b>{asal?.nama}</b> berkurang <b className="num">{rp(totalKeluar)}</b>
+                        {biaya > 0 && <> ({rp(jumlah)} + admin {rp(biaya)})</>}
+                      </p>
+                      {kurang && (
+                        <p className="peringatan">
+                          Saldo tercatat {rp(asal.saldo)}, kurang {rp(totalKeluar - asal.saldo)}.
+                          Tetap bisa disimpan — saldo bisa saja belum sinkron dengan mutasi asli.
+                        </p>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
 
-              <div className="kaki">
-                <button type="submit" className="btn solid" disabled={kirim}>
-                  {kirim ? 'Menyimpan…' : 'Catat transfer'}
-                </button>
-              </div>
-            </form>
+                  <div className="kaki">
+                    <button type="submit" className="btn solid" disabled={kirim}>
+                      {kirim ? 'Menyimpan…' : 'Catat transfer'}
+                    </button>
+                  </div>
+                </form>
+              </Kartu>
+            </section>
           )}
 
           {data?.transfer?.length > 0 && (
-            <section className="riwayat">
-              <h2>Riwayat</h2>
-              <ul>
+            <section className="blok">
+              <JudulSection>Riwayat</JudulSection>
+              <Kartu rapat>
                 {data.transfer.map(t => (
-                  <li key={t.id}>
-                    <span className="tgl">{fmt(t.tanggal)}</span>
-                    <span className="rute">
-                      {t.dari} → {t.ke}
-                      {t.catatan && <span className="catatan"> · {t.catatan}</span>}
-                    </span>
-                    <span className="nom num">
-                      {rp(t.amount)}
-                      {t.fee > 0 && <span className="fee"> + {rp(t.fee)}</span>}
-                    </span>
-                    <button className="ico bahaya" onClick={() => hapus(t)}>Hapus</button>
-                  </li>
+                  <Baris key={t.id}
+                    kolom={[
+                      { isi: fmt(t.tanggal), lebar: '148px', redup: true, num: true },
+                      {
+                        isi: <>{t.dari} → {t.ke}{t.catatan ? ` · ${t.catatan}` : ''}</>,
+                        lebar: 'minmax(0,1fr)',
+                      },
+                      {
+                        isi: t.fee > 0 ? `admin ${rp(t.fee)}` : '',
+                        lebar: '160px', rata: 'right', redup: true, num: true,
+                      },
+                      { isi: rp(t.amount), lebar: '176px', rata: 'right', num: true, tebal: true },
+                    ]}
+                    aksi={<button className="ico bahaya" onClick={() => hapus(t)}>Hapus</button>}
+                  />
                 ))}
-              </ul>
+              </Kartu>
             </section>
           )}
         </div>
       </div>
 
+      {/* Hanya yang khas halaman ini. Kerangka bersama ada di
+          styles/globals.css di bawah lingkup .hal. */}
       <style jsx>{`
         .hal { padding: var(--space-6) 0 var(--space-12); }
-        .atas { padding: 0 var(--pad-section) var(--space-5); }
-        h1 {
-          font-family: var(--font-display); font-weight: 800;
-          font-size: var(--text-2xl); color: var(--ink);
-          letter-spacing: var(--tracking-tight);
-        }
-        .sub { font-size: var(--text-sm); color: var(--muted); margin-top: var(--space-2); max-width: 66ch; }
+        .atas { padding: 0 var(--pad-section); }
         .badan { padding: var(--space-5) var(--pad-section) 0; }
+        .rangka { height: 240px; }
 
-        .hal :global(.btn) {
-          display: inline-flex; align-items: center; justify-content: center;
-          min-height: 44px; padding: 0 var(--space-5);
-          border: var(--border-width) solid var(--border);
-          border-radius: var(--radius-sm);
-          background: var(--surface); color: var(--ink);
-          font-size: var(--text-sm); font-weight: 600; cursor: pointer;
-        }
-        .hal :global(.btn.solid) { background: var(--solid); border-color: var(--solid); color: var(--on-solid); }
-        .hal :global(.btn:disabled) { opacity: .55; cursor: not-allowed; }
+        .blok + .blok { margin-top: var(--gap-section); }
 
-        .kabar {
-          border-radius: var(--radius-sm); padding: var(--space-3);
-          font-size: var(--text-sm); margin-bottom: var(--space-4);
-          display: flex; justify-content: space-between; align-items: center;
-          background: var(--surface); border: var(--border-width) solid var(--border);
-        }
-        .kabar.galat { border-color: var(--danger); color: var(--danger); }
-        .kabar.sukses { border-color: var(--ok); color: var(--ok); }
-        .rangka { height: 200px; border-radius: var(--radius-md); background: var(--surface-2); }
-
-        .kosong {
-          background: var(--surface); border: var(--border-width) dashed var(--border);
-          border-radius: var(--radius-md); padding: var(--space-12) var(--space-6);
-          text-align: center; color: var(--muted);
-        }
-        .kosong h3 {
-          font-family: var(--font-display); font-weight: 700;
-          font-size: var(--text-lg); color: var(--ink); margin-bottom: var(--space-1);
-        }
-
-        .kartu {
-          background: var(--surface); border: var(--border-width) solid var(--border);
-          border-radius: var(--radius-md); padding: var(--pad-card);
-        }
-        .form { display: flex; flex-direction: column; gap: var(--space-4); }
+        form { display: flex; flex-direction: column; gap: var(--space-5); }
         .baris {
-          display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
           gap: var(--space-4);
         }
-        .f { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-        .f label {
-          font-size: var(--text-2xs); letter-spacing: var(--tracking-label);
-          text-transform: uppercase; color: var(--muted);
-        }
-        .bantu { font-size: var(--text-xs); color: var(--muted); }
 
         .ringkas {
-          background: var(--surface-2); border-radius: var(--radius-sm);
-          padding: var(--space-3); font-size: var(--text-sm); color: var(--ink-2);
+          background: var(--surface-2);
+          border: var(--border-width) solid var(--border);
+          border-radius: var(--radius-sm);
+          padding: var(--space-4);
+          font-size: var(--text-md); color: var(--ink);
         }
-        .ringkas.waspada { border: var(--border-width) solid var(--warn); }
-        .peringatan { color: var(--warn); font-size: var(--text-xs); margin-top: var(--space-2); }
+        .ringkas.waspada { border-color: var(--warn); background: var(--warn-soft); }
+        .peringatan { color: var(--warn); font-size: var(--text-sm); margin-top: var(--space-2); }
 
         .kaki { display: flex; justify-content: flex-end; }
 
-        .riwayat { margin-top: var(--space-8); }
-        .riwayat h2 {
-          font-family: var(--font-display); font-weight: 700;
-          font-size: var(--text-lg); color: var(--ink); margin-bottom: var(--space-3);
-        }
-        .riwayat ul { list-style: none; display: flex; flex-direction: column; gap: var(--space-1); }
-        .riwayat li {
-          display: flex; align-items: center; gap: var(--space-4);
-          background: var(--surface); border: var(--border-width) solid var(--border);
-          border-radius: var(--radius-sm); padding: var(--space-2) var(--space-4);
-          font-size: var(--text-sm);
-        }
-        .tgl { color: var(--muted); white-space: nowrap; }
-        .rute { flex: 1; color: var(--ink-2); min-width: 0; }
-        .catatan { color: var(--muted); }
-        .nom { color: var(--ink); white-space: nowrap; }
-        .fee { color: var(--warn); }
-
-        .ico {
-          min-height: 36px; padding: 0 var(--space-2);
-          background: none; border: none; border-radius: var(--radius-sm);
-          color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer;
-        }
-        .ico:hover { background: var(--surface-2); color: var(--ink); }
-        .ico.bahaya:hover { color: var(--danger); }
-
         @media (max-width: 900px) {
-          .atas { padding: 0 var(--space-4) var(--space-4); }
+          .atas { padding: 0 var(--space-4); }
           .badan { padding: var(--space-4) var(--space-4) 0; }
-          .riwayat li { flex-wrap: wrap; }
         }
       `}</style>
     </Shell>

@@ -192,11 +192,11 @@ export default function Jobs() {
   )
 
   const segmen = [
-    ['dilamar', hitung.Applied + hitung.Progress, '#5B72D8'],
-    ['screening', hitung.Screening, '#9268E8'],
-    ['interview', hitung.Interview, '#E08A2B'],
-    ['offer', hitung.Offer, '#1AA37B'],
-    ['ditolak', hitung.Rejected + hitung.Ghosted, '#7C8894'],
+    ['dilamar', hitung.Applied + hitung.Progress, 'var(--st-Applied)'],
+    ['screening', hitung.Screening, 'var(--st-Screening)'],
+    ['interview', hitung.Interview, 'var(--st-Interview)'],
+    ['offer', hitung.Offer, 'var(--st-Offer)'],
+    ['ditolak', hitung.Rejected + hitung.Ghosted, 'var(--st-Ghosted)'],
   ].filter(s => s[1] > 0)
 
   const dijawab = semua.filter(a => DIRESPONS.includes(a.status)).length
@@ -477,10 +477,17 @@ export default function Jobs() {
         </dialog>
       </div>
 
-      <style jsx global>{`
-        /* Job Tracker memakai token bersama. Tidak ada lagi palet lokal:
-           satu-satunya sumber warna adalah styles/tokens.css, sehingga
-           halaman ini ikut berganti tema tanpa aturan tambahan. */
+	<style jsx global>{`
+        /* Job Tracker memakai token bersama. Tidak ada palet lokal:
+           satu-satunya sumber warna adalah styles/tokens.css.
+
+           v2 — diseragamkan dengan modul Money:
+           - Chip filter jadi pil dengan isi --accent-soft saat aktif.
+           - Semua baris masuk ke satu kartu, dipisah garis rambut, bukan
+             kartu terpisah per baris dengan rel warna di kiri.
+           - Tombol ikon muncul saat baris disorot.
+           - Label naik dari 11px ke 13px.
+           - Tinggi baris dikunci ke --row-h. */
         .papan {
           font-family: var(--font-body);
           font-size: var(--text-md);
@@ -500,120 +507,144 @@ export default function Jobs() {
         .papan h1{
           font-family:var(--font-display);
           font-weight:800;font-size:var(--text-2xl);
-          line-height:var(--leading-tight);letter-spacing:var(--tracking-tight);
+          line-height:var(--leading-tight);letter-spacing:-0.02em;
           color:var(--ink);
         }
-        .papan .tagline{font-size:var(--text-sm);color:var(--muted);margin-top:var(--space-2)}
-        .papan .tagline b{color:var(--warn);font-weight:500}
+        .papan .tagline{font-size:var(--text-sm);color:var(--ink-2);margin-top:var(--space-2)}
+        .papan .tagline b{color:var(--warn);font-weight:600}
 
         .papan .pipe{flex:0 1 340px;min-width:260px}
         .papan .pipe-head{
           display:flex;justify-content:space-between;align-items:baseline;
-          font-size:var(--text-2xs);letter-spacing:var(--tracking-label);
+          font-size:var(--text-xs);letter-spacing:var(--tracking-label);
           text-transform:uppercase;color:var(--muted);margin-bottom:var(--space-2);
         }
-        .papan .pipe-bar{height:9px;border-radius:var(--radius-full);overflow:hidden;display:flex;background:var(--surface-2)}
+        .papan .pipe-bar{height:10px;border-radius:var(--radius-full);overflow:hidden;display:flex;background:var(--surface-2)}
         .papan .pipe-bar span{display:block;transition:width var(--dur-slow) var(--ease)}
         .papan .pipe-legend{
-          font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--muted);
+          font-size:var(--text-xs);color:var(--muted);
           margin-top:var(--space-2);display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:center;
         }
         .papan .pipe-legend i{font-style:normal;display:inline-flex;align-items:center;gap:5px}
-        .papan .pipe-legend .dot{width:7px;height:7px;border-radius:2px;display:inline-block;flex:none}
+        .papan .pipe-legend .dot{width:8px;height:8px;border-radius:2px;display:inline-block;flex:none}
 
         .papan .controls{
           padding:var(--space-4) var(--pad-section) 0;
           display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;
         }
-        .papan .search{flex:1;min-width:200px;width:auto;min-height:44px}
-        .papan .chips{display:flex;gap:var(--space-1);flex-wrap:wrap}
+        .papan .search{flex:1;min-width:220px;width:auto;min-height:40px;font-size:var(--text-md)}
+
+        /* Chip filter: pil, isi lembut saat aktif. Sama persis dengan Chip
+           di components/ui.js supaya dua modul tidak punya dua bahasa. */
+        .papan .chips{display:flex;gap:var(--space-2);flex-wrap:wrap}
         .papan .chip{
-          background:transparent;border:var(--border-width) solid var(--border);
-          border-radius:var(--radius-sm);min-height:44px;padding:0 var(--space-3);
+          background:var(--surface);border:var(--border-width) solid var(--border);
+          border-radius:var(--radius-full);min-height:34px;padding:0 var(--space-3);
           font-size:var(--text-sm);font-weight:600;color:var(--ink-2);
+          display:inline-flex;align-items:center;gap:var(--space-2);cursor:pointer;
           transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
         }
-        .papan .chip:hover{background:var(--surface-2)}
-        .papan .chip[aria-pressed="true"]{background:var(--solid);border-color:var(--solid);color:var(--on-solid)}
-        .papan .chip .c{font-family:var(--font-mono);font-size:var(--text-xs);opacity:.65;margin-left:var(--space-1)}
-        .papan select.sort{width:auto;min-height:44px;font-size:var(--text-sm);font-weight:600;background:var(--surface)}
+        .papan .chip:hover{background:var(--hover)}
+        .papan .chip[aria-pressed="true"]{
+          background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);
+        }
+        .papan .chip .c{font-variant-numeric:tabular-nums;font-weight:500;color:var(--muted)}
+        .papan .chip[aria-pressed="true"] .c{color:var(--accent)}
+
+        .papan select.sort{width:auto;min-height:40px;font-size:var(--text-sm);font-weight:600;background:var(--surface)}
         .papan .btn{
-          background:var(--surface);border:var(--border-width) solid var(--border);
-          border-radius:var(--radius-sm);min-height:44px;padding:0 var(--space-4);
-          font-size:var(--text-sm);font-weight:600;text-decoration:none;color:var(--ink);
+          background:transparent;border:var(--border-width) solid var(--accent);
+          border-radius:var(--radius-full);min-height:36px;padding:0 var(--space-4);
+          font-size:var(--text-sm);font-weight:600;text-decoration:none;color:var(--accent);
           display:inline-flex;align-items:center;gap:var(--space-2);cursor:pointer;
         }
-        .papan .btn:hover{background:var(--surface-2)}
+        .papan .btn:hover{background:var(--accent-soft)}
         .papan .btn-solid{background:var(--solid);border-color:var(--solid);color:var(--on-solid)}
-        .papan .btn-solid:hover{opacity:.88;background:var(--solid)}
+        .papan .btn-solid:hover{background:var(--accent-quiet);border-color:var(--accent-quiet)}
 
         .papan .galat{
-          flex:1;background:var(--surface);border:var(--border-width) solid var(--danger);
+          flex:1;background:var(--danger-soft);border:var(--border-width) solid var(--danger);
           color:var(--danger);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);
           font-size:var(--text-sm);display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);
         }
 
         .papan .board{padding:var(--space-4) var(--pad-section) 0}
-        /* Kolom lama menyisakan terlalu banyak ruang untuk garis tunggu
-           dan terlalu sedikit untuk nama perusahaan. Bobotnya dibalik. */
         .papan .grid{
           display:grid;
-          grid-template-columns:26px minmax(200px,1.7fr) 116px minmax(150px,1fr) 112px 54px;
-          gap:var(--space-3);align-items:center;
+          grid-template-columns:32px minmax(200px,1.7fr) 130px minmax(150px,1fr) 124px 62px;
+          gap:var(--space-4);align-items:center;
         }
         .papan .colhead{
-          padding:0 var(--space-3) var(--space-2);
-          font-family:var(--font-mono);font-size:var(--text-2xs);
+          padding:0 var(--space-5) var(--space-2);
+          font-size:var(--text-xs);
           letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--muted);
         }
-        .papan .list{display:flex;flex-direction:column;gap:var(--space-1)}
+
+        /* Satu kartu untuk seluruh daftar. Baris dipisah garis rambut,
+           bukan jarak dan bayangan. */
+        .papan .list{
+          display:flex;flex-direction:column;
+          background:var(--surface);
+          border:var(--border-width) solid var(--border);
+          border-radius:var(--radius-md);
+          box-shadow:var(--shadow-card);
+          overflow:hidden;
+        }
 
         .papan .row{
-          background:var(--surface);border:var(--border-width) solid var(--border);
-          border-radius:var(--radius-md);border-left:3px solid var(--rail,var(--muted));
-          transition:box-shadow var(--dur-fast) var(--ease);
+          background:transparent;border:0;
+          border-bottom:var(--border-width) solid var(--border);
+          transition:background var(--dur-fast) var(--ease);
         }
-        .papan .row:hover,.papan .row.open{box-shadow:var(--shadow-card)}
-        .papan .row-main{padding:var(--space-3)}
-        .papan .idx{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted)}
+        .papan .row:last-child{border-bottom:0}
+        .papan .row:hover{background:var(--hover)}
+        .papan .row-main{padding:var(--space-2) var(--space-5);min-height:var(--row-h)}
+        .papan .idx{font-size:var(--text-sm);color:var(--muted);font-variant-numeric:tabular-nums}
         .papan .who{text-align:left;background:none;border:none;padding:0;cursor:pointer;min-width:0}
         .papan .co{
           font-family:var(--font-display);font-weight:700;font-size:var(--text-md);
           letter-spacing:var(--tracking-tight);line-height:1.2;color:var(--ink);
         }
         .papan .role{
-          color:var(--muted);font-size:var(--text-sm);line-height:1.3;margin-top:1px;
+          color:var(--ink-2);font-size:var(--text-sm);line-height:1.3;margin-top:2px;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
         }
+        /* Penanda sumber, bukan status. Karena itu netral, tidak meminjam
+           warna dari palet status lamaran. */
         .papan .tag{
-          display:inline-block;font-family:var(--font-mono);font-size:var(--text-2xs);
-          letter-spacing:.09em;text-transform:uppercase;
-          border:var(--border-width) solid currentColor;border-radius:3px;
-          padding:0 4px;margin-left:6px;vertical-align:2px;color:var(--st-Screening);font-weight:500;
+          display:inline-block;font-size:var(--text-xs);
+          letter-spacing:.06em;text-transform:uppercase;
+          border:var(--border-width) solid var(--border-strong);border-radius:4px;
+          padding:0 5px;margin-left:6px;vertical-align:2px;color:var(--muted);font-weight:600;
         }
-        .papan .meta{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--ink-2);line-height:1.5;min-width:0}
+        .papan .meta{font-size:var(--text-sm);color:var(--ink-2);line-height:1.4;min-width:0}
         .papan .meta .dim{color:var(--muted)}
 
         .papan .wait{min-width:0}
         .papan .track{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
         .papan .fill{height:100%;border-radius:3px;width:0;transition:width var(--dur-slow) var(--ease)}
-        .papan .fill.strip{background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.45) 0 3px,transparent 3px 7px)}
+        .papan .fill.strip{background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.4) 0 3px,transparent 3px 7px)}
         .papan .wait-lbl{
-          font-family:var(--font-mono);font-size:var(--text-xs);margin-top:5px;
+          font-size:var(--text-xs);margin-top:6px;
           color:var(--ink-2);display:flex;justify-content:space-between;gap:var(--space-2);
         }
         .papan .wait-lbl .act{font-weight:700;text-align:right;flex:none}
 
         .papan select.status{
           appearance:none;-webkit-appearance:none;
-          font-family:var(--font-mono);font-weight:500;font-size:var(--text-2xs);
-          letter-spacing:.09em;text-transform:uppercase;text-align:center;text-align-last:center;
-          border:1.4px solid currentColor;border-radius:var(--radius-full);background:transparent;
+          font-weight:600;font-size:var(--text-xs);
+          letter-spacing:.06em;text-transform:uppercase;text-align:center;text-align-last:center;
+          border:var(--border-width) solid currentColor;border-radius:var(--radius-full);background:transparent;
           padding:6px 8px;cursor:pointer;width:100%;min-height:0;
         }
-        .papan .acts{display:flex;gap:2px;justify-content:flex-end}
+
+        /* Aksi baru muncul saat baris disorot, seperti di daftar transaksi.
+           Tempatnya tetap dipesan supaya kolom tidak bergeser. */
+        .papan .acts{display:flex;gap:2px;justify-content:flex-end;opacity:0;transition:opacity var(--dur-fast) var(--ease)}
+        .papan .row:hover .acts,.papan .row:focus-within .acts{opacity:1}
+        @media (hover:none){.papan .acts{opacity:1}}
         .papan .ico{
-          background:none;border:none;padding:6px;border-radius:var(--radius-sm);cursor:pointer;
+          background:none;border:none;padding:7px;border-radius:var(--radius-sm);cursor:pointer;
           color:var(--muted);display:inline-flex;align-items:center;justify-content:center;
         }
         .papan .ico:hover{background:var(--surface-2);color:var(--ink)}
@@ -621,31 +652,31 @@ export default function Jobs() {
 
         .papan .detail{
           display:none;border-top:var(--border-width) solid var(--border);
-          padding:var(--space-3);background:var(--surface-2);
-          border-radius:0 0 var(--radius-md) var(--radius-md);
+          padding:var(--space-4) var(--space-5);background:var(--surface-2);
         }
-        .papan .row.open .detail{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-3) var(--space-6)}
+        .papan .row.open .detail{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-4) var(--space-6)}
         .papan .dt{
-          font-family:var(--font-mono);font-size:var(--text-2xs);
-          letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--muted);margin-bottom:2px;
+          font-size:var(--text-xs);
+          letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--muted);margin-bottom:3px;
         }
-        .papan .dd{font-size:var(--text-sm);word-break:break-word;color:var(--ink-2)}
+        .papan .dd{font-size:var(--text-sm);word-break:break-word;color:var(--ink)}
         .papan .dd a{color:var(--accent);font-weight:600}
 
         .papan .empty{
-          background:var(--surface);border:var(--border-width) dashed var(--border);
+          background:var(--surface);border:var(--border-width) solid var(--border);
           border-radius:var(--radius-md);padding:var(--space-12) var(--space-6);
           text-align:center;color:var(--muted);
         }
-        .papan .empty h3{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--ink);margin-bottom:var(--space-1)}
+        .papan .empty h3{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--ink);margin-bottom:var(--space-2)}
+        .papan .empty p{font-size:var(--text-sm)}
 
         .papan dialog{
           margin:auto;
           border:var(--border-width) solid var(--border);border-radius:var(--radius-md);
-          background:var(--surface);width:min(580px,94vw);padding:0;
+          background:var(--surface);width:min(600px,94vw);padding:0;
           box-shadow:var(--shadow-pop);color:var(--ink);
         }
-        .papan dialog::backdrop{background:rgba(11,22,32,.55)}
+        .papan dialog::backdrop{background:rgba(20,20,18,.55)}
         .papan .mhead{
           background:var(--surface-2);color:var(--ink);
           padding:var(--space-4) var(--space-5);
@@ -654,23 +685,25 @@ export default function Jobs() {
           border-radius:var(--radius-md) var(--radius-md) 0 0;
         }
         .papan .mhead h2{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg)}
-        .papan form{padding:var(--space-5);display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
-        .papan .f{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+        .papan form{padding:var(--space-5);display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+        .papan .f{display:flex;flex-direction:column;gap:var(--space-2);min-width:0}
         .papan .f.full{grid-column:1/-1}
+        /* Label form biasa, bukan huruf besar berjarak lebar. Sepuluh label
+           kapital beruntun membuat form terbaca seperti formulir pajak. */
         .papan .f label{
-          font-family:var(--font-mono);font-size:var(--text-2xs);
-          letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--muted);
+          font-size:var(--text-sm);font-weight:600;color:var(--ink-2);
         }
-        .papan .bantu{font-size:var(--text-xs);color:var(--muted)}
+        .papan .f input,.papan .f select,.papan .f textarea{min-height:42px;font-size:var(--text-md)}
+        .papan .bantu{font-size:var(--text-sm);color:var(--muted)}
         .papan .mfoot{grid-column:1/-1;display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-1)}
 
         .papan footer{
           padding:var(--space-5) var(--pad-section) 0;
-          font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--muted);
+          font-size:var(--text-xs);color:var(--muted);
         }
         .papan footer code{
           background:var(--surface);border:var(--border-width) solid var(--border);
-          border-radius:4px;padding:1px 5px;
+          border-radius:4px;padding:1px 5px;font-variant-numeric:tabular-nums;
         }
 
         @media (max-width:900px){
@@ -681,7 +714,7 @@ export default function Jobs() {
           .papan .row-main{
             grid-template-columns:1fr auto;
             grid-template-areas:"who status" "meta meta" "wait wait" "acts acts";
-            gap:var(--space-2);
+            gap:var(--space-2);padding:var(--space-3) var(--space-4);
           }
           .papan .idx{display:none}
           .papan .who{grid-area:who}

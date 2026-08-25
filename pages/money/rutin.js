@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
 import Shell from '../../components/Shell'
 import { VAR_CATEGORIES } from '../../lib/constants'
 import { FIXED_ITEMS } from '../../lib/validation'
 import MoneyNav from '../../components/MoneyNav'
+import { Kartu, Baris, Pil } from '../../components/ui'
 
+// Jenis template. Warnanya dulu money-in / money-out / money-plan, tiga warna
+// untuk tiga hal yang setara. Sekarang cuma nada pil, dan pilnya sendiri
+// sudah menulis namanya, jadi warnanya tidak menanggung beban informasi.
 const JENIS = [
-  { id: 'income', label: 'Pemasukan', warna: 'var(--money-in)' },
-  { id: 'variable', label: 'Pengeluaran', warna: 'var(--money-out)' },
-  { id: 'fixed', label: 'Fixed cost', warna: 'var(--money-plan)' },
+  { id: 'income', label: 'Pemasukan', nada: 'ok' },
+  { id: 'variable', label: 'Pengeluaran', nada: 'netral' },
+  { id: 'fixed', label: 'Fixed cost', nada: 'aksen' },
 ]
 
 const KOSONG = {
@@ -19,7 +22,7 @@ const KOSONG = {
 const rp = n => 'Rp' + Number(n || 0).toLocaleString('id-ID')
 
 const labelJenis = j => JENIS.find(x => x.id === j)?.label || j
-const warnaJenis = j => JENIS.find(x => x.id === j)?.warna || 'var(--muted)'
+const nadaJenis = j => JENIS.find(x => x.id === j)?.nada || 'netral'
 
 // Periode berjalan dari tanggal 20 sampai 19. Tanggal 20 ke atas berarti
 // awal periode, di bawahnya berarti bulan berikutnya — perlu dijelaskan
@@ -49,9 +52,9 @@ export default function Berulang() {
 
   useEffect(() => { muat() }, [muat])
 
-  // Daftar dompet diambil terpisah karena endpoint rutin tidak
-  // membawanya. Gagal mengambilnya tidak fatal: dropdown jadi kosong,
-  // template tetap bisa disimpan tanpa dompet.
+  // Daftar dompet diambil terpisah karena endpoint rutin tidak membawanya.
+  // Gagal mengambilnya tidak fatal: dropdown jadi kosong, template tetap
+  // bisa disimpan tanpa dompet.
   useEffect(() => {
     let batal = false
     fetch('/api/money/wallets')
@@ -97,6 +100,9 @@ export default function Berulang() {
 
   const ubah = (k, v) => setDraf(d => ({ ...d, [k]: v }))
 
+  const namaDompet = id =>
+    id ? (dompet.find(w => w.id === id)?.nama || 'dompet terhapus') : 'tanpa dompet'
+
   return (
     <Shell title="Rutin">
       <div className="hal">
@@ -118,55 +124,53 @@ export default function Berulang() {
 
         <MoneyNav aktif="rutin" />
 
-        {galat && (
-          <div className="galat" role="alert">
-            {galat}
-            <button className="ico" onClick={() => setGalat('')} aria-label="Tutup">✕</button>
-          </div>
-        )}
+        <div className="badan">
+          {galat && (
+            <div className="galat" role="alert">
+              {galat}
+              <button className="ico" onClick={() => setGalat('')} aria-label="Tutup">✕</button>
+            </div>
+          )}
 
-        {daftar === null && <div className="rangka" aria-hidden="true" />}
+          {daftar === null && <div className="rangka" aria-hidden="true" />}
 
-        {daftar && daftar.length === 0 && (
-          <div className="kosong">
-            <h3>Belum ada template</h3>
-            <p>Tambahkan gaji, kosan, atau langganan yang berulang tiap bulan.</p>
-          </div>
-        )}
+          {daftar && daftar.length === 0 && (
+            <div className="kosong">
+              <h3>Belum ada template</h3>
+              <p>Tambahkan gaji, kosan, atau langganan yang berulang tiap bulan.</p>
+            </div>
+          )}
 
-        {daftar && daftar.length > 0 && (
-          <ul className="daftar">
-            {daftar.map(r => (
-              <li key={r.id} className={'baris' + (r.aktif ? '' : ' mati')}
-                style={{ '--rail': warnaJenis(r.jenis) }}>
-                <div className="isi">
-                  <p className="nama">{r.jenis === 'fixed' ? r.item : r.description}</p>
-                  <p className="meta">
-                    {labelJenis(r.jenis)}
-                    {r.category ? ` · ${r.category}` : ''}
-                    {' · '}{jelaskanHari(r.hari)}
-                    {r.walletId
-                      ? ` · ${dompet.find(w => w.id === r.walletId)?.nama || 'dompet terhapus'}`
-                      : ' · tanpa dompet'}
-                    {r.aktif ? '' : ' · nonaktif'}
-                  </p>
+          {daftar && daftar.length > 0 && (
+            <Kartu rapat>
+              {daftar.map(r => (
+                <div key={r.id} className={r.aktif ? undefined : 'mati'}>
+                  <Baris
+                    kolom={[
+                      { isi: r.jenis === 'fixed' ? r.item : r.description, lebar: 'minmax(0,1fr)' },
+                      { isi: <Pil nada={nadaJenis(r.jenis)} anak={labelJenis(r.jenis)} />, lebar: '148px' },
+                      {
+                        isi: `${jelaskanHari(r.hari)} · ${namaDompet(r.walletId)}${r.aktif ? '' : ' · nonaktif'}`,
+                        lebar: '260px', redup: true,
+                      },
+                      { isi: rp(r.amount), lebar: '176px', rata: 'right', num: true, tebal: true },
+                    ]}
+                    aksi={
+                      <>
+                        <button className="ico" onClick={() => toggleAktif(r)}
+                          title={r.aktif ? 'Nonaktifkan' : 'Aktifkan'}>
+                          {r.aktif ? 'Jeda' : 'Aktifkan'}
+                        </button>
+                        <button className="ico" onClick={() => setDraf({ ...KOSONG, ...r })}>Ubah</button>
+                        <button className="ico bahaya" onClick={() => hapus(r)}>Hapus</button>
+                      </>
+                    }
+                  />
                 </div>
-                <p className="nominal num">{rp(r.amount)}</p>
-                <div className="tombol">
-                  <button className="ico" onClick={() => toggleAktif(r)}
-                    title={r.aktif ? 'Nonaktifkan' : 'Aktifkan'}
-                    aria-label={r.aktif ? 'Nonaktifkan' : 'Aktifkan'}>
-                    {r.aktif ? '❙❙' : '▶'}
-                  </button>
-                  <button className="ico" onClick={() => setDraf({ ...KOSONG, ...r })}
-                    aria-label="Ubah">Ubah</button>
-                  <button className="ico bahaya" onClick={() => hapus(r)}
-                    aria-label="Hapus">Hapus</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+              ))}
+            </Kartu>
+          )}
+        </div>
 
         {draf && (
           <div className="tirai" onClick={e => { if (e.target === e.currentTarget) setDraf(null) }}>
@@ -246,123 +250,18 @@ export default function Berulang() {
         )}
       </div>
 
+      {/* Hanya yang khas halaman ini. Kerangka bersama ada di
+          styles/globals.css di bawah lingkup .hal. */}
       <style jsx>{`
-        .hal { padding: var(--space-6) var(--pad-section) var(--space-12); }
-
-        .atas {
-          display: flex; justify-content: space-between; align-items: flex-start;
-          gap: var(--space-6); flex-wrap: wrap; margin-bottom: var(--space-6);
-        }
-        h1 {
-          font-family: var(--font-display); font-weight: 800;
-          font-size: var(--text-2xl); color: var(--ink);
-          letter-spacing: var(--tracking-tight);
-        }
-        .sub {
-          font-size: var(--text-sm); color: var(--muted);
-          margin-top: var(--space-2); max-width: 62ch;
-        }
-        .aksi { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-
-        .hal :global(.btn) {
-          display: inline-flex; align-items: center; justify-content: center;
-          min-height: 44px; padding: 0 var(--space-4);
-          border: var(--border-width) solid var(--border);
-          border-radius: var(--radius-sm);
-          background: var(--surface); color: var(--ink);
-          font-size: var(--text-sm); font-weight: 600;
-          text-decoration: none; cursor: pointer;
-        }
-        .hal :global(.btn:hover) { background: var(--surface-2); }
-        .hal :global(.btn.solid) {
-          background: var(--solid); border-color: var(--solid); color: var(--on-solid);
-        }
-
-        .galat {
-          background: var(--surface); border: var(--border-width) solid var(--danger);
-          color: var(--danger); border-radius: var(--radius-sm);
-          padding: var(--space-3); font-size: var(--text-sm);
-          display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: var(--space-4);
-        }
-
-        .rangka { height: 120px; border-radius: var(--radius-md); background: var(--surface-2); }
-
-        .kosong {
-          background: var(--surface); border: var(--border-width) dashed var(--border);
-          border-radius: var(--radius-md); padding: var(--space-12) var(--space-6);
-          text-align: center; color: var(--muted);
-        }
-        .kosong h3 {
-          font-family: var(--font-display); font-weight: 700;
-          font-size: var(--text-lg); color: var(--ink); margin-bottom: var(--space-1);
-        }
-
-        .daftar { list-style: none; display: flex; flex-direction: column; gap: var(--space-1); }
-        .baris {
-          display: flex; align-items: center; gap: var(--space-4);
-          background: var(--surface);
-          border: var(--border-width) solid var(--border);
-          border-left: 3px solid var(--rail);
-          border-radius: var(--radius-md);
-          padding: var(--space-3) var(--space-4);
-        }
-        .baris.mati { opacity: .5; }
-        .isi { flex: 1; min-width: 0; }
-        .nama { font-weight: 600; color: var(--ink); }
-        .meta { font-size: var(--text-xs); color: var(--muted); margin-top: 2px; }
-        .nominal { font-size: var(--text-md); color: var(--ink-2); white-space: nowrap; }
-        .tombol { display: flex; gap: var(--space-1); }
-
-        .ico {
-          min-height: 36px; padding: 0 var(--space-2);
-          background: none; border: none; border-radius: var(--radius-sm);
-          color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer;
-        }
-        .ico:hover { background: var(--surface-2); color: var(--ink); }
-        .ico.bahaya:hover { color: var(--danger); }
-
-        .tirai {
-          position: fixed; inset: 0; z-index: 60;
-          background: rgba(11, 22, 32, .55);
-          display: flex; align-items: center; justify-content: center;
-          padding: var(--space-4);
-        }
-        .modal {
-          background: var(--surface);
-          border: var(--border-width) solid var(--border);
-          border-radius: var(--radius-md);
-          box-shadow: var(--shadow-pop);
-          width: min(460px, 100%);
-          padding: 0 var(--space-5) var(--space-5);
-          display: flex; flex-direction: column; gap: var(--space-3);
-          max-height: 90vh; overflow: auto;
-        }
-        .mhead {
-          display: flex; justify-content: space-between; align-items: center;
-          margin: 0 calc(var(--space-5) * -1) var(--space-2);
-          padding: var(--space-4) var(--space-5);
-          background: var(--surface-2);
-          border-bottom: var(--border-width) solid var(--border);
-          border-radius: var(--radius-md) var(--radius-md) 0 0;
-        }
-        .mhead h2 {
-          font-family: var(--font-display); font-weight: 700;
-          font-size: var(--text-lg); color: var(--ink);
-        }
-
-        .f { display: flex; flex-direction: column; gap: var(--space-1); }
-        .f label {
-          font-size: var(--text-2xs); letter-spacing: var(--tracking-label);
-          text-transform: uppercase; color: var(--muted);
-        }
-        .bantu { font-size: var(--text-xs); color: var(--muted); }
-        .mfoot { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+        .hal { padding: var(--space-6) 0 var(--space-12); }
+        .atas { padding: 0 var(--pad-section); }
+        .badan { padding: var(--space-5) var(--pad-section) 0; }
+        .rangka { height: 200px; }
+        .mati { opacity: .5; }
 
         @media (max-width: 900px) {
-          .hal { padding: var(--space-5) var(--space-4) var(--space-10); }
-          .baris { flex-wrap: wrap; }
-          .nominal { order: 3; }
+          .atas { padding: 0 var(--space-4); }
+          .badan { padding: var(--space-4) var(--space-4) 0; }
         }
       `}</style>
     </Shell>

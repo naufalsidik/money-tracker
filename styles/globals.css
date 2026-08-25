@@ -103,3 +103,179 @@ select option { background: var(--surface); color: var(--ink); }
   color: var(--ink); font-weight: 600;
   margin-top: var(--space-4); margin-bottom: var(--space-2);
 }
+
+/* ==========================================================================
+   Kerangka halaman modul Money
+   Dipakai bersama oleh rutin, target, dompet, dan transfer.
+
+   Semuanya dilingkupi .hal supaya tidak bocor ke halaman lain, dan supaya
+   nama sepolos .btn atau .f tidak bertabrakan dengan kelas global yang
+   sudah ada.
+
+   Sebelum ini, keempat halaman menyalin blok yang sama di styled-jsx
+   masing-masing. Satu perubahan berarti empat suntingan, dan cepat atau
+   lambat salah satunya tertinggal.
+   ========================================================================== */
+
+/* ---- kepala halaman ---- */
+.hal .atas {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+}
+.hal h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-2xl);
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+.hal .sub {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  margin-top: var(--space-2);
+  max-width: 66ch;
+}
+.hal .aksi { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+/* ---- tombol ---- */
+.hal .btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--space-2);
+  min-height: 36px; padding: 0 var(--space-4);
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-full);
+  background: transparent; color: var(--accent);
+  font-size: var(--text-sm); font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: background var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
+}
+.hal .btn:hover { background: var(--accent-soft); }
+.hal .btn.solid {
+  background: var(--solid); border-color: var(--solid); color: var(--on-solid);
+}
+.hal .btn.solid:hover { background: var(--accent-quiet); border-color: var(--accent-quiet); }
+.hal .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Tombol teks kecil di dalam baris dan kartu. */
+.hal .ico {
+  min-height: 34px; padding: 0 var(--space-3);
+  background: none; border: none; border-radius: var(--radius-full);
+  color: var(--ink-2); font-size: var(--text-sm); font-weight: 600;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.hal .ico:hover { background: var(--hover); color: var(--ink); }
+.hal .ico.bahaya { color: var(--danger); }
+.hal .ico.bahaya:hover { background: var(--danger-soft); }
+
+/* ---- kabar ---- */
+.hal .galat,
+.hal .kabar {
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+  display: flex; justify-content: space-between; align-items: center;
+  gap: var(--space-3);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+}
+.hal .galat,
+.hal .kabar.galat {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.hal .kabar.sukses {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+/* ---- keadaan kosong dan memuat ---- */
+.hal .rangka {
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.hal .kosong {
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  color: var(--muted);
+}
+.hal .kosong h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+.hal .kosong p { font-size: var(--text-sm); }
+
+/* ---- form ---- */
+.hal .f {
+  display: flex; flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+/* Label biasa, bukan huruf besar berjarak lebar. Sederet label kapital
+   membuat form terbaca seperti formulir pajak. */
+.hal .f label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.hal .f input,
+.hal .f select,
+.hal .f textarea {
+  min-height: 42px;
+  font-size: var(--text-md);
+}
+.hal .bantu { font-size: var(--text-sm); color: var(--muted); }
+
+/* ---- modal ---- */
+.hal .tirai {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(20, 20, 18, .55);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+}
+.hal .modal {
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  width: min(480px, 100%);
+  padding: 0 var(--space-5) var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-4);
+  max-height: 90vh; overflow: auto;
+}
+.hal .mhead {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 0 calc(var(--space-5) * -1) var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface-2);
+  border-bottom: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.hal .mhead h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+.hal .mfoot {
+  display: flex; justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

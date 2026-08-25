@@ -3,6 +3,15 @@ import Link from 'next/link'
 // Kerangka bersama semua kartu ringkasan di home. Modul hanya menyuplai
 // angkanya; tata letak, status memuat, dan penanganan galat ada di sini
 // supaya semua kartu berperilaku sama.
+//
+// v2: label naik dari 11px ke 12px, angka utama dari weight 500 ke 700,
+// dan nilai rinci netral secara default.
+//
+// Prop `warna` pada tiap rinci masih dihormati supaya modul lama tidak
+// putus, tapi seharusnya sudah tidak dipakai lagi. Nominal biasa netral;
+// warna hanya untuk selisih dan pelanggaran budget. Nilai `warna` itu
+// datang dari modul, kemungkinan lib/modules.js — di situ tempat
+// membersihkannya, bukan di sini.
 export default function KartuRingkasan({
   modul, memuat, galat, utama, labelUtama, rinci = [],
 }) {
@@ -75,8 +84,9 @@ export default function KartuRingkasan({
         .bungkus :global(.kartu:hover) .panah { color: var(--accent); }
 
         .label-utama {
-          font-family: var(--font-mono);
-          font-size: var(--text-2xs);
+          font-family: var(--font-body);
+          font-size: var(--text-xs);
+          font-weight: 500;
           letter-spacing: var(--tracking-label);
           text-transform: uppercase;
           color: var(--muted);
@@ -84,7 +94,7 @@ export default function KartuRingkasan({
         }
         .utama {
           font-size: var(--text-2xl);
-          font-weight: 500;
+          font-weight: 700;
           line-height: var(--leading-tight);
           letter-spacing: var(--tracking-tight);
           color: var(--ink);
@@ -101,13 +111,19 @@ export default function KartuRingkasan({
           border-top: var(--border-width) solid var(--border);
         }
         .rinci dt {
-          font-family: var(--font-mono);
-          font-size: var(--text-2xs);
+          font-family: var(--font-body);
+          font-size: var(--text-xs);
+          font-weight: 500;
           letter-spacing: var(--tracking-label);
           text-transform: uppercase;
           color: var(--muted);
         }
-        .rinci dd { font-size: var(--text-md); color: var(--ink-2); margin-top: 2px; }
+        .rinci dd {
+          font-size: var(--text-md);
+          font-weight: 600;
+          color: var(--ink);
+          margin-top: 2px;
+        }
 
         .rangka {
           height: 74px;
@@ -119,6 +135,10 @@ export default function KartuRingkasan({
         .sr {
           position: absolute; width: 1px; height: 1px;
           overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+        }
+
+        @media (max-width: 767px) {
+          .utama { font-size: var(--text-xl); }
         }
       `}</style>
     </div>

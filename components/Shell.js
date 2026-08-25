@@ -77,14 +77,15 @@ export default function Shell({ title, children }) {
         <button className="tirai" onClick={() => setBukaHp(false)} tabIndex={-1} aria-hidden="true" />
 
         <aside className="sisi">
+          <button className="ciutkan" onClick={ganti}
+            aria-label={ciut ? 'Lebarkan sidebar' : 'Ciutkan sidebar'}
+            aria-expanded={!ciut} title={ciut ? 'Lebarkan' : 'Ciutkan'}>
+            <IkonCiut ciut={ciut} />
+          </button>
+
           <div className="merek">
             <span className="tanda" aria-hidden="true">PT</span>
             <span className="nama">Personal Tracker</span>
-            <button className="ciutkan" onClick={ganti}
-              aria-label={ciut ? 'Lebarkan sidebar' : 'Ciutkan sidebar'}
-              aria-expanded={!ciut} title={ciut ? 'Lebarkan' : 'Ciutkan'}>
-              <IkonCiut ciut={ciut} />
-            </button>
           </div>
 
           <nav aria-label="Modul">
@@ -147,25 +148,41 @@ export default function Shell({ title, children }) {
         .tanda {
           flex: none;
           display: inline-flex; align-items: center; justify-content: center;
-          width: 30px; height: 30px;
+          width: 32px; height: 32px;
           border-radius: var(--radius-sm);
           background: var(--solid); color: var(--on-solid);
-          font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 700;
+          font-size: var(--text-xs); font-weight: 700; letter-spacing: .02em;
         }
+        /* flex + min-width:0 supaya elipsis benar-benar bekerja. Tanpa itu
+           teksnya terpenggal di tengah huruf dan menabrak tombol ciutkan —
+           itu yang membuat mereknya terbaca "Personal Track". */
         .nama {
+          flex: 1; min-width: 0;
           font-family: var(--font-display); font-weight: 700;
           font-size: var(--text-md); letter-spacing: var(--tracking-tight);
-          white-space: nowrap; overflow: hidden;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          color: var(--ink);
         }
         .ciutkan {
-          flex: none; margin-left: auto;
+          position: absolute; top: var(--space-3); right: var(--space-3);
+          z-index: 1;
           display: inline-flex; align-items: center; justify-content: center;
           width: 32px; height: 32px;
-          background: transparent; border: none;
+          background: var(--surface); border: none;
           border-radius: var(--radius-sm); color: var(--muted);
-          transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+          opacity: 0;
+          transition: opacity var(--dur-fast) var(--ease),
+                      background var(--dur-fast) var(--ease),
+                      color var(--dur-fast) var(--ease);
         }
-        .ciutkan:hover { background: var(--surface-2); color: var(--ink); }
+        .sisi:hover .ciutkan,
+        .ciutkan:focus-visible { opacity: 1; }
+        .ciutkan:hover { background: var(--hover); color: var(--ink); }
+
+        /* Saat ciut, tombol ini satu-satunya jalan untuk melebarkan lagi,
+           jadi tidak boleh ikut tersembunyi. */
+        .ciut .ciutkan { position: static; opacity: 1; margin: 0 auto var(--space-2); }
+        .ciutkan:hover { background: var(--hover); color: var(--ink); }
 
         nav ul { list-style: none; display: flex; flex-direction: column; gap: 2px; }
 
@@ -178,8 +195,10 @@ export default function Shell({ title, children }) {
           white-space: nowrap; overflow: hidden;
           transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
         }
-        nav li :global(a:hover) { background: var(--surface-2); color: var(--ink); }
-        nav li :global(a.aktif) { background: var(--surface-2); color: var(--accent); }
+        nav li :global(a:hover) { background: var(--hover); color: var(--ink); }
+        /* Item aktif memakai isi lembut aksen, sama dengan chip aktif di
+           Job Tracker dan tombol tipe di form Tambah. */
+        nav li :global(a.aktif) { background: var(--accent-soft); color: var(--accent); }
 
         .ikon { flex: none; display: inline-flex; }
 
@@ -194,14 +213,13 @@ export default function Shell({ title, children }) {
           min-height: 44px; padding: 0 var(--space-3);
           background: transparent; border: none;
           border-radius: var(--radius-sm);
-          color: var(--muted); font-size: var(--text-sm); font-weight: 600;
+          color: var(--ink-2); font-size: var(--text-sm); font-weight: 600;
           text-align: left; white-space: nowrap; overflow: hidden;
         }
-        .keluar:hover { background: var(--surface-2); color: var(--ink); }
+        .keluar:hover { background: var(--hover); color: var(--ink); }
 
         .ciut .nama, .ciut .teks { display: none; }
         .ciut .merek { flex-direction: column; gap: var(--space-2); padding-left: 0; padding-right: 0; }
-        .ciut .ciutkan { margin-left: 0; }
         .ciut nav li :global(a) { justify-content: center; padding: 0; gap: 0; }
         .ciut .keluar { justify-content: center; padding: 0; gap: 0; }
 
@@ -247,7 +265,7 @@ export default function Shell({ title, children }) {
             background: transparent; border: none;
             border-radius: var(--radius-sm); color: var(--ink-2);
           }
-          .ikon-btn:hover { background: var(--surface-2); color: var(--ink); }
+          .ikon-btn:hover { background: var(--hover); color: var(--ink); }
           .judul-hp {
             font-family: var(--font-display); font-weight: 700;
             font-size: var(--text-md); letter-spacing: var(--tracking-tight);
@@ -256,7 +274,7 @@ export default function Shell({ title, children }) {
 
           .tirai {
             display: block; position: fixed; inset: 0; z-index: 30;
-            background: rgba(11, 22, 32, .5);
+            background: rgba(20, 20, 18, .5);
             border: none; padding: 0;
             opacity: 0; pointer-events: none;
             transition: opacity var(--dur-base) var(--ease);
